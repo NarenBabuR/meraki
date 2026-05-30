@@ -1,0 +1,25 @@
+# --- Core RAG pipeline ---
+anthropic>=0.40.0                 # Claude generation
+sentence-transformers>=3.0.0      # local embeddings (BGE) + cross-encoder rerank
+chromadb>=0.5.0                   # embedded persistent vector store
+langchain-text-splitters>=0.3.0   # RecursiveCharacterTextSplitter (chunking)
+pypdf>=4.0.0                      # PDF text extraction (born-digital arXiv papers)
+arxiv>=2.1.0                      # fetch papers from the arXiv API
+certifi>=2024.0.0                # CA bundle for arXiv PDF downloads (macOS SSL)
+python-dotenv>=1.0.0             # load ANTHROPIC_API_KEY from .env
+
+# --- Query interface ---
+streamlit>=1.36.0                 # chat UI with inline retrieved chunks
+
+# --- Evaluation ---
+# ragas 0.2.x is built against the langchain 0.3 generation; pin the whole
+# langchain stack to 0.3 so imports resolve (langchain 1.x moves modules ragas
+# still references). These pins are what makes `pip install` reproducible.
+ragas>=0.2,<0.3                   # RAG eval: context precision/recall, faithfulness, relevancy
+langchain>=0.3,<0.4
+langchain-core>=0.3,<0.4
+langchain-community>=0.3,<0.4
+langchain-anthropic>=0.2,<0.4     # wraps Claude as the Ragas judge LLM
+langchain-huggingface>=0.1,<0.2   # wraps local BGE as the Ragas embeddings
+datasets>=2.19.0                  # ragas dataset backing
+pandas>=2.0.0                    # results tables

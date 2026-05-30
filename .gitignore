@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Corpus + index are reproducible from scripts/build_index.py — don't commit binaries.
+data/pdfs/
+data/chroma/
+
+# Eval result JSONs ARE committed (the before/after evidence) — keep them.
+# Everything else under data/eval/ stays tracked.
+
+# Assignment prompt (not part of the solution)
+Meraki_Labs_*.pdf

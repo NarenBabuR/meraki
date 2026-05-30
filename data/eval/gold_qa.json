@@ -1,0 +1,158 @@
+[
+  {
+    "question": "What architecture does the paper that proposes dispensing with recurrence and convolutions introduce, and what is it based on?",
+    "reference": "The Transformer, a model architecture based solely on attention mechanisms, dispensing entirely with recurrence and convolutions.",
+    "category": "in_domain",
+    "source": "1706.03762"
+  },
+  {
+    "question": "How many identical layers are stacked in the encoder and in the decoder of the base Transformer?",
+    "reference": "Six identical layers (N = 6) in each of the encoder and the decoder.",
+    "category": "in_domain",
+    "source": "1706.03762"
+  },
+  {
+    "question": "What is the name of the attention function the Transformer uses, and why is the dot product scaled?",
+    "reference": "Scaled Dot-Product Attention; the dot products are scaled by 1/sqrt(d_k) to counteract large magnitudes that push the softmax into regions with very small gradients.",
+    "category": "in_domain",
+    "source": "1706.03762"
+  },
+  {
+    "question": "What are the two unsupervised pre-training tasks used to train BERT?",
+    "reference": "Masked Language Modeling (MLM, predicting randomly masked tokens) and Next Sentence Prediction (NSP).",
+    "category": "in_domain",
+    "source": "1810.04805"
+  },
+  {
+    "question": "What does the acronym BERT stand for?",
+    "reference": "Bidirectional Encoder Representations from Transformers.",
+    "category": "in_domain",
+    "source": "1810.04805"
+  },
+  {
+    "question": "In the retrieval-augmented generation model, what are the two main components?",
+    "reference": "A parametric component (a pre-trained seq2seq generator, BART) and a non-parametric component (a dense vector index of Wikipedia accessed with a pre-trained neural retriever, DPR).",
+    "category": "in_domain",
+    "source": "2005.11401"
+  },
+  {
+    "question": "What two model formulations does the retrieval-augmented generation paper propose?",
+    "reference": "RAG-Sequence (uses the same retrieved document for the whole output sequence) and RAG-Token (can use a different retrieved document for each token).",
+    "category": "in_domain",
+    "source": "2005.11401"
+  },
+  {
+    "question": "How many parameters does GPT-3 have?",
+    "reference": "175 billion parameters.",
+    "category": "in_domain",
+    "source": "2005.14165"
+  },
+  {
+    "question": "What learning setting does the GPT-3 paper emphasize, and is it gradient-based?",
+    "reference": "Few-shot / in-context learning: the model is given a few demonstrations in its context at inference time, with no gradient updates or fine-tuning.",
+    "category": "in_domain",
+    "source": "2005.14165"
+  },
+  {
+    "question": "What method does InstructGPT use to align language models with human intent?",
+    "reference": "Reinforcement Learning from Human Feedback (RLHF): supervised fine-tuning on human demonstrations, then training a reward model from human preference comparisons and optimizing the policy against it with PPO.",
+    "category": "in_domain",
+    "source": "2203.02155"
+  },
+  {
+    "question": "What is notable about the training data used for the LLaMA models?",
+    "reference": "LLaMA was trained exclusively on publicly available datasets, without resorting to proprietary or inaccessible data.",
+    "category": "in_domain",
+    "source": "2302.13971"
+  },
+  {
+    "question": "What does LoRA freeze and what does it train to reduce the number of trainable parameters?",
+    "reference": "LoRA freezes the pre-trained model weights and injects trainable low-rank decomposition matrices into the layers, training only those low-rank matrices.",
+    "category": "in_domain",
+    "source": "2106.09685"
+  },
+  {
+    "question": "What unified framework does the T5 paper propose for NLP tasks?",
+    "reference": "A text-to-text framework that casts every NLP task as taking text as input and producing text as output, allowing the same model, loss, and decoding procedure across tasks.",
+    "category": "in_domain",
+    "source": "1910.10683"
+  },
+  {
+    "question": "What capability does chain-of-thought prompting elicit in large language models?",
+    "reference": "It elicits multi-step reasoning by having the model generate intermediate reasoning steps before the final answer, improving performance on arithmetic, commonsense, and symbolic reasoning tasks.",
+    "category": "in_domain",
+    "source": "2201.11903"
+  },
+  {
+    "question": "What position-encoding method does RoFormer introduce?",
+    "reference": "Rotary Position Embedding (RoPE), which encodes absolute position with a rotation matrix and naturally incorporates relative position dependency into the self-attention formulation.",
+    "category": "in_domain",
+    "source": "2104.09864"
+  },
+  {
+    "question": "What efficiency problem with BERT does Sentence-BERT address for semantic similarity search?",
+    "reference": "BERT requires both sentences to be fed through the network together, making large-scale similarity search and clustering very expensive; Sentence-BERT produces fixed-size sentence embeddings that can be compared with cosine similarity.",
+    "category": "in_domain",
+    "source": "1908.10084"
+  },
+  {
+    "question": "What kind of retrieval does Dense Passage Retrieval use instead of sparse methods like TF-IDF or BM25?",
+    "reference": "Dense embedding retrieval: passages and questions are encoded into dense vectors by a learned dual-encoder, and retrieval is done by nearest-neighbor search over those embeddings.",
+    "category": "in_domain",
+    "source": "2004.04906"
+  },
+  {
+    "question": "What late-interaction operator does ColBERT use to score documents?",
+    "reference": "A MaxSim operation: it computes token-level embeddings for the query and document and sums, over query terms, the maximum cosine similarity of each query token to any document token.",
+    "category": "in_domain",
+    "source": "2004.12832"
+  },
+  {
+    "question": "Both BERT and the original Transformer use multi-head self-attention. Which part of the Transformer architecture does BERT build on?",
+    "reference": "BERT uses only the encoder stack of the Transformer (a multi-layer bidirectional Transformer encoder), not the decoder.",
+    "category": "multi_hop",
+    "source": "1810.04805,1706.03762"
+  },
+  {
+    "question": "Retrieval-augmented generation relies on DPR for retrieval. What retrieval approach does DPR use, and how does it differ from BM25?",
+    "reference": "DPR uses learned dense passage embeddings from a dual-encoder and retrieves by vector similarity, whereas BM25 is a sparse term-matching method based on word overlap; DPR can match on semantics rather than exact terms.",
+    "category": "multi_hop",
+    "source": "2005.11401,2004.04906"
+  },
+  {
+    "question": "GPT-3 showed strong few-shot ability but not reliable instruction-following. What later technique was used to make such models follow user instructions, and what are its main stages?",
+    "reference": "RLHF, as used in InstructGPT: supervised fine-tuning on human demonstrations, training a reward model from human preference rankings, and reinforcement-learning optimization (PPO) of the policy against that reward model.",
+    "category": "multi_hop",
+    "source": "2005.14165,2203.02155"
+  },
+  {
+    "question": "Both LoRA and standard full fine-tuning adapt a pre-trained Transformer. What efficiency advantages does LoRA claim over full fine-tuning, including at inference time?",
+    "reference": "LoRA greatly reduces the number of trainable parameters and the GPU memory/storage needed per task by training only low-rank matrices while freezing the base weights, and it adds no additional inference latency because the low-rank updates can be merged into the original weights.",
+    "category": "multi_hop",
+    "source": "2106.09685"
+  },
+  {
+    "question": "What was the box office revenue of the movie Titanic?",
+    "reference": "This question cannot be answered from the corpus, which contains only machine-learning research papers.",
+    "category": "out_of_domain",
+    "source": null
+  },
+  {
+    "question": "What is the capital city of Australia?",
+    "reference": "This question cannot be answered from the corpus, which contains only machine-learning research papers.",
+    "category": "out_of_domain",
+    "source": null
+  },
+  {
+    "question": "Can you give me a step-by-step recipe for baking a sourdough bread loaf?",
+    "reference": "This question cannot be answered from the corpus, which contains only machine-learning research papers.",
+    "category": "out_of_domain",
+    "source": null
+  },
+  {
+    "question": "What were Apple's quarterly earnings in the third quarter of 2023?",
+    "reference": "This question cannot be answered from the corpus, which contains only machine-learning research papers.",
+    "category": "out_of_domain",
+    "source": null
+  }
+]
