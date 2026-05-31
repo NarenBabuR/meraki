@@ -3,6 +3,8 @@
   "config": {
     "chunk_size": 1024,
     "chunk_overlap_ratio": 0.2,
+    "small_to_big": true,
+    "child_chunk_size": 256,
     "embed_model": "BAAI/bge-small-en-v1.5",
     "use_query_instruction": false,
     "query_instruction": "Represent this sentence for searching relevant passages: ",
@@ -20,23 +22,23 @@
   },
   "n_questions": 26,
   "overall": {
-    "llm_context_precision_with_reference": 0.6481,
-    "context_recall": 0.6538,
-    "faithfulness": 0.9,
-    "answer_relevancy": 0.7604
+    "llm_context_precision_with_reference": 0.6038,
+    "context_recall": 0.6923,
+    "faithfulness": 0.8972,
+    "answer_relevancy": 0.6955
   },
   "by_category": {
     "in_domain": {
-      "llm_context_precision_with_reference": 0.8001,
-      "context_recall": 0.8333,
-      "faithfulness": 0.9333,
-      "answer_relevancy": 0.9181
+      "llm_context_precision_with_reference": 0.775,
+      "context_recall": 0.9444,
+      "faithfulness": 0.9831,
+      "answer_relevancy": 0.9083
     },
     "multi_hop": {
-      "llm_context_precision_with_reference": 0.6125,
-      "context_recall": 0.5,
-      "faithfulness": 1.0,
-      "answer_relevancy": 0.8108
+      "llm_context_precision_with_reference": 0.4375,
+      "context_recall": 0.25,
+      "faithfulness": 0.6795,
+      "answer_relevancy": 0.4333
     },
     "out_of_domain": {
       "llm_context_precision_with_reference": 0.0,
@@ -46,9 +48,9 @@
     }
   },
   "latency": {
-    "retrieval_ms_mean": 289.8,
-    "generation_ms_mean": 3762.7,
-    "retrieval_ms_p95": 518.5
+    "retrieval_ms_mean": 140.2,
+    "generation_ms_mean": 3995.3,
+    "retrieval_ms_p95": 189.7
   },
   "per_row": [
     {
@@ -57,15 +59,15 @@
       "llm_context_precision_with_reference": 1.0,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.7148
+      "answer_relevancy": 0.724
     },
     {
       "question": "How many identical layers are stacked in the encoder and in the decoder of the base Transformer?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.8333,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.9395
+      "answer_relevancy": 0.9769
     },
     {
       "question": "What is the name of the attention function the Transformer uses, and why is the dot product scaled?",
@@ -73,20 +75,20 @@
       "llm_context_precision_with_reference": 1.0,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.9088
+      "answer_relevancy": 0.9867
     },
     {
       "question": "What are the two unsupervised pre-training tasks used to train BERT?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.25,
+      "llm_context_precision_with_reference": 0.8042,
       "context_recall": 1.0,
-      "faithfulness": 0.5,
-      "answer_relevancy": 1.0
+      "faithfulness": 0.8889,
+      "answer_relevancy": 0.991
     },
     {
       "question": "What does the acronym BERT stand for?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.25,
       "context_recall": 1.0,
       "faithfulness": 1.0,
       "answer_relevancy": 0.9602
@@ -94,15 +96,15 @@
     {
       "question": "In the retrieval-augmented generation model, what are the two main components?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.3667,
+      "llm_context_precision_with_reference": 0.3333,
       "context_recall": 0.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.9457
+      "answer_relevancy": 0.9424
     },
     {
       "question": "What two model formulations does the retrieval-augmented generation paper propose?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.2,
       "context_recall": 1.0,
       "faithfulness": 1.0,
       "answer_relevancy": 0.6686
@@ -118,42 +120,42 @@
     {
       "question": "What learning setting does the GPT-3 paper emphasize, and is it gradient-based?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.8042,
+      "llm_context_precision_with_reference": 1.0,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.9788
+      "answer_relevancy": 0.963
     },
     {
       "question": "What method does InstructGPT use to align language models with human intent?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.7,
-      "context_recall": 0.0,
-      "faithfulness": 1.0,
-      "answer_relevancy": 0.9563
+      "llm_context_precision_with_reference": 1.0,
+      "context_recall": 1.0,
+      "faithfulness": NaN,
+      "answer_relevancy": 0.9089
     },
     {
       "question": "What is notable about the training data used for the LLaMA models?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.2,
-      "context_recall": 0.0,
-      "faithfulness": NaN,
-      "answer_relevancy": 0.9885
+      "llm_context_precision_with_reference": 0.5833,
+      "context_recall": 1.0,
+      "faithfulness": 0.9,
+      "answer_relevancy": 0.9574
     },
     {
       "question": "What does LoRA freeze and what does it train to reduce the number of trainable parameters?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.7556,
+      "llm_context_precision_with_reference": 0.9167,
       "context_recall": 1.0,
-      "faithfulness": NaN,
-      "answer_relevancy": 0.9073
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8354
     },
     {
       "question": "What unified framework does the T5 paper propose for NLP tasks?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.95,
       "context_recall": 1.0,
-      "faithfulness": 0.75,
-      "answer_relevancy": 0.9874
+      "faithfulness": 0.9231,
+      "answer_relevancy": 0.84
     },
     {
       "question": "What capability does chain-of-thought prompting elicit in large language models?",
@@ -166,65 +168,65 @@
     {
       "question": "What position-encoding method does RoFormer introduce?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.6792,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.9419
+      "answer_relevancy": 0.9255
     },
     {
       "question": "What efficiency problem with BERT does Sentence-BERT address for semantic similarity search?",
       "category": "in_domain",
       "llm_context_precision_with_reference": 1.0,
       "context_recall": 1.0,
-      "faithfulness": NaN,
-      "answer_relevancy": 0.9476
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9316
     },
     {
       "question": "What kind of retrieval does Dense Passage Retrieval use instead of sparse methods like TF-IDF or BM25?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 1.0,
+      "llm_context_precision_with_reference": 0.7,
       "context_recall": 1.0,
       "faithfulness": 1.0,
-      "answer_relevancy": 0.8933
+      "answer_relevancy": 0.878
     },
     {
       "question": "What late-interaction operator does ColBERT use to score documents?",
       "category": "in_domain",
-      "llm_context_precision_with_reference": 0.325,
+      "llm_context_precision_with_reference": 0.7,
       "context_recall": 1.0,
-      "faithfulness": 0.75,
-      "answer_relevancy": 0.7882
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8613
     },
     {
       "question": "Both BERT and the original Transformer use multi-head self-attention. Which part of the Transformer architecture does BERT build on?",
       "category": "multi_hop",
-      "llm_context_precision_with_reference": 0.5,
+      "llm_context_precision_with_reference": 0.25,
       "context_recall": 0.0,
-      "faithfulness": 1.0,
-      "answer_relevancy": 0.8821
+      "faithfulness": 0.5833,
+      "answer_relevancy": 0.886
     },
     {
       "question": "Retrieval-augmented generation relies on DPR for retrieval. What retrieval approach does DPR use, and how does it differ from BM25?",
       "category": "multi_hop",
-      "llm_context_precision_with_reference": 1.0,
-      "context_recall": 1.0,
-      "faithfulness": NaN,
-      "answer_relevancy": 0.7255
+      "llm_context_precision_with_reference": 0.0,
+      "context_recall": 0.0,
+      "faithfulness": 0.75,
+      "answer_relevancy": 0.0
     },
     {
       "question": "GPT-3 showed strong few-shot ability but not reliable instruction-following. What later technique was used to make such models follow user instructions, and what are its main stages?",
       "category": "multi_hop",
-      "llm_context_precision_with_reference": 0.0,
+      "llm_context_precision_with_reference": 0.5,
       "context_recall": 0.0,
-      "faithfulness": NaN,
-      "answer_relevancy": 0.7883
+      "faithfulness": 0.3846,
+      "answer_relevancy": 0.0
     },
     {
       "question": "Both LoRA and standard full fine-tuning adapt a pre-trained Transformer. What efficiency advantages does LoRA claim over full fine-tuning, including at inference time?",
       "category": "multi_hop",
-      "llm_context_precision_with_reference": 0.95,
+      "llm_context_precision_with_reference": 1.0,
       "context_recall": 1.0,
-      "faithfulness": NaN,
+      "faithfulness": 1.0,
       "answer_relevancy": 0.8473
     },
     {

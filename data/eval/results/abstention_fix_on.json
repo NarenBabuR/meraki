@@ -3,11 +3,11 @@
   "abstain_enabled": true,
   "by_category": {
     "in_domain": {
-      "abstention_rate": 0.0,
+      "abstention_rate": 0.0556,
       "n": 18
     },
     "multi_hop": {
-      "abstention_rate": 0.25,
+      "abstention_rate": 0.0,
       "n": 4
     },
     "out_of_domain": {
@@ -21,104 +21,104 @@
       {
         "question": "What architecture does the paper that proposes dispensing with recurrence and convolutions introduce, and what is it based on?",
         "abstained": false,
-        "n_contexts": 3,
-        "answer": "Based on the context passages, the paper introduces the **Transformer** architecture. It is based solely on **attention mechanisms**, dispensing with recurrence and convolutions entirely. [2], [3]"
+        "n_contexts": 4,
+        "answer": "Based on the context passages, the paper introduces the **Transformer** architecture. It is based **solely on attention mechanisms**, completely dispensing with recurrence and convolutions entirely. ["
       },
       {
         "question": "How many identical layers are stacked in the encoder and in the decoder of the base Transformer?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "According to the original Transformer architecture, both the encoder and the decoder are each composed of a stack of **N = 6 identical layers** [1][2]."
+        "answer": "According to the paper \"Attention Is All You Need,\" both the encoder and the decoder are each composed of a stack of **N = 6 identical layers** [1][3]."
       },
       {
         "question": "What is the name of the attention function the Transformer uses, and why is the dot product scaled?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, the Transformer uses **Scaled Dot-Product Attention** [2].\n\nThe dot product is scaled by **1/\u221adk** for the following reason: for large values of dk, the dot products gro"
+        "answer": "## Transformer Attention Function\n\n### Name\nThe attention function used in the Transformer is called **\"Scaled Dot-Product Attention\"** [1].\n\n### Formula\n$$\\text{Attention}(Q, K, V) = \\text{softmax}\\l"
       },
       {
         "question": "What are the two unsupervised pre-training tasks used to train BERT?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, the two unsupervised pre-training tasks used to train BERT are:\n\n1. **Masked Language Model (MLM)** \u2013 which masks words and trains the model to predict them based on bot"
+        "answer": "Based on the context passages, BERT is pre-trained using two unsupervised tasks:\n\n1. **Masked Language Model (MLM)** \u2013 where a random sample of tokens in the input sequence is selected and replaced wi"
       },
       {
         "question": "What does the acronym BERT stand for?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, BERT stands for **Bidirectional Encoder Representations from Transformers** [1]."
+        "answer": "Based on the context provided, BERT stands for **Bidirectional Encoder Representations from Transformers**. [4]"
       },
       {
         "question": "In the retrieval-augmented generation model, what are the two main components?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, the two main components of a retrieval-augmented generation (RAG) model are:\n\n1. **Parametric memory** \u2013 a pre-trained seq2seq model\n2. **Non-parametric memory** \u2013 a den"
+        "answer": "Based on the context passages, the two main components of the retrieval-augmented generation (RAG) model are:\n\n1. **Parametric memory** \u2013 a pre-trained seq2seq transformer (generation model)\n2. **Non-"
       },
       {
         "question": "What two model formulations does the retrieval-augmented generation paper propose?",
-        "abstained": false,
+        "abstained": true,
         "n_contexts": 5,
-        "answer": "Based on passage [1], the RAG paper proposes two formulations:\n\n1. One which **conditions on the same retrieved passages across the whole generated sequence**\n2. Another which **can use different pass"
+        "answer": "Based on the context passages, the retrieval-augmented generation paper [3] describes building RAG models where:\n\n1. The **parametric memory** is a pre-trained seq2seq transformer\n2. The **non-paramet"
       },
       {
         "question": "How many parameters does GPT-3 have?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, GPT-3 has **175 billion parameters**. This is mentioned in multiple passages, including the description of it as \"the largest single Transformer language model trained t"
+        "answer": "Based on the context passages, GPT-3 has **175 billion parameters**. This is mentioned across multiple passages [1], [2], [3], [4], and [5]."
       },
       {
         "question": "What learning setting does the GPT-3 paper emphasize, and is it gradient-based?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, the GPT-3 paper emphasizes **few-shot learning** (along with one-shot and zero-shot settings), and it is explicitly **not gradient-based**.\n\nAs stated in [1] and [4], th"
+        "answer": "Based on the context passages, the GPT-3 paper emphasizes **few-shot learning** (along with one-shot and zero-shot settings), and it is explicitly **not gradient-based**.\n\nAs stated in the abstract, \""
       },
       {
         "question": "What method does InstructGPT use to align language models with human intent?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, InstructGPT uses **Reinforcement Learning from Human Feedback (RLHF)** to align language models with human intent. Specifically, the process involves:\n\n1. Collecting a d"
+        "answer": "Based on the context passages, InstructGPT uses a two-stage fine-tuning approach to align language models with human intent:\n\n1. **Supervised Learning**: Starting with labeler-written prompts and prom"
       },
       {
         "question": "What is notable about the training data used for the LLaMA models?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, several notable aspects of LLaMA's training data are mentioned:\n\n1. **Publicly available data only**: Unlike competitors such as Chinchilla, PaLM, or GPT-3, LLaMA was tr"
+        "answer": "Based on the context passages, several notable aspects of the training data used for LLaMA models are mentioned:\n\n1. **Publicly available data only**: Unlike competing models such as Chinchilla, PaLM,"
       },
       {
         "question": "What does LoRA freeze and what does it train to reduce the number of trainable parameters?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, LoRA **freezes the pre-trained weights** and instead **trains only the injected low-rank decomposition matrices (matrices A and B)** [1][5].\n\nSpecifically:\n\n- The **pre-"
+        "answer": "Based on the context passages, LoRA **freezes the pre-trained model weights** and instead **trains injected rank decomposition matrices** (specifically matrices **A** and **B**) inserted into each lay"
       },
       {
         "question": "What unified framework does the T5 paper propose for NLP tasks?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, the T5 paper proposes a unified framework that **converts all text-based language problems into a text-to-text format** [2]. This means every NLP problem \u2014 including sum"
+        "answer": "Based on the context passages, the T5 paper proposes a **\"text-to-text\" framework** that converts all text-based NLP problems into a unified format \u2014 taking text as input and producing new text as out"
       },
       {
         "question": "What capability does chain-of-thought prompting elicit in large language models?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, chain-of-thought prompting elicits **multi-step reasoning** capabilities in large language models. Specifically, it enables improvements in **arithmetic, commonsense, an"
+        "answer": "Based on the context passages, chain-of-thought prompting elicits **multi-step reasoning** capabilities in large language models. Specifically, it enables them to perform complex reasoning across a ra"
       },
       {
         "question": "What position-encoding method does RoFormer introduce?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, RoFormer introduces **Rotary Position Embedding (RoPE)**. Specifically, RoPE encodes absolute position using a rotation matrix while simultaneously incorporating explici"
+        "answer": "Based on the provided passages, RoFormer introduces **Rotary Position Embedding (RoPE)**. Specifically, RoPE encodes absolute position with a rotation matrix while simultaneously incorporating explici"
       },
       {
         "question": "What efficiency problem with BERT does Sentence-BERT address for semantic similarity search?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, Sentence-BERT addresses the massive computational overhead that BERT requires for semantic similarity search. Specifically, BERT uses a **cross-encoder architecture** wh"
+        "answer": "Based on the context passages, Sentence-BERT addresses the massive computational overhead that BERT requires for semantic similarity search. Because BERT uses a **cross-encoder** architecture, both se"
       },
       {
         "question": "What kind of retrieval does Dense Passage Retrieval use instead of sparse methods like TF-IDF or BM25?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, Dense Passage Retrieval (DPR) uses **dense representations** (embeddings) instead of sparse methods like TF-IDF or BM25. Specifically, it employs a **dual-encoder framew"
+        "answer": "Based on the context passages, Dense Passage Retrieval (DPR) uses **dense representations** (dense embeddings) instead of sparse methods like TF-IDF or BM25. Specifically, it employs a **dual-encoder "
       },
       {
         "question": "What late-interaction operator does ColBERT use to score documents?",
@@ -132,25 +132,25 @@
         "question": "Both BERT and the original Transformer use multi-head self-attention. Which part of the Transformer architecture does BERT build on?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the context passages, BERT builds on the Transformer architecture as described by Vaswani et al. (2017). According to [4], BERT's implementation is \"almost identical to the original\" Transfor"
+        "answer": "Based on the context passages, BERT builds specifically on the **encoder** part of the Transformer architecture. As stated in [4], \"BERT's model architecture is a multi-layer bidirectional Transformer"
       },
       {
         "question": "Retrieval-augmented generation relies on DPR for retrieval. What retrieval approach does DPR use, and how does it differ from BM25?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the provided passages, DPR (Dense Passage Retrieval) uses **dense retrieval**, which relies on learned vector representations (embeddings) to compute similarity between questions and passages"
+        "answer": "Based on the provided passages, here is a comparison of DPR's retrieval approach versus BM25:\n\n**DPR's Approach:**\nDPR uses a **dense bi-encoder architecture**, where both documents and queries are en"
       },
       {
         "question": "GPT-3 showed strong few-shot ability but not reliable instruction-following. What later technique was used to make such models follow user instructions, and what are its main stages?",
-        "abstained": true,
+        "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the provided context passages, I can partially answer this question.\n\n**GPT-3's limitations in instruction-following** are noted in [4], which states that \"GPT-3 can perform these tasks but r"
+        "answer": "Based on the provided context passages, GPT-3's few-shot capabilities are well documented [1][4][5], and passage [2] directly addresses the technique developed to improve instruction-following.\n\nThe t"
       },
       {
         "question": "Both LoRA and standard full fine-tuning adapt a pre-trained Transformer. What efficiency advantages does LoRA claim over full fine-tuning, including at inference time?",
         "abstained": false,
         "n_contexts": 5,
-        "answer": "Based on the provided passages, LoRA claims several efficiency advantages over full fine-tuning:\n\n**Training Efficiency:**\n- LoRA can reduce the number of trainable parameters by **10,000 times** comp"
+        "answer": "Based on the provided passages, LoRA claims several efficiency advantages over full fine-tuning:\n\n**Training Efficiency:**\n- LoRA reduces the number of trainable parameters by **10,000 times** compare"
       }
     ],
     "out_of_domain": [

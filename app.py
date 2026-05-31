@@ -68,12 +68,15 @@ if prompt:
                 for i, c in enumerate(res.contexts, start=1):
                     m = c["metadata"]
                     score = f"cosine={c['similarity']:.3f}"
-                    if "rerank_score" in c:
+                    if c.get("rerank_score") is not None:
                         score += f" · rerank={c['rerank_score']:.3f}"
+                    sec = f" · §{m['section']}" if m.get("section") else ""
                     st.markdown(
                         f"**[{i}] {m['title']}** "
-                        f"(arXiv:{m['arxiv_id']}, p.{m['page']}) — {score}"
+                        f"(arXiv:{m['arxiv_id']}, p.{m['page']}{sec}) — {score}"
                     )
+                    if c.get("matched_child"):
+                        st.caption(f"matched snippet: “{c['matched_child'][:160]}…”")
                     st.text(c["text"][:600] + ("…" if len(c["text"]) > 600 else ""))
                     st.divider()
         else:

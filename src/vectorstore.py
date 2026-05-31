@@ -1,21 +1,30 @@
-"""ChromaDB persistent vector store.
+"""ChromaDB persistent vector store (+ a parent sidecar for small-to-big).
 
 Embedded + file-backed (no server, no docker) so a grader can run everything
 with a single `pip install`. Cosine space to match the normalized BGE vectors.
 We pass embeddings explicitly (Chroma never calls an embedding fn itself), which
 keeps the index-time and query-time embedding code in one place (embeddings.py).
+
+In small-to-big mode we embed/search the *children* (in Chroma) but need the
+*parent* text at query time. Parents aren't searched by similarity, so rather
+than give them dummy vectors in Chroma we persist them as a JSON sidecar
+(`parents.json`) next to the Chroma store and look them up by id.
 """
 from __future__ import annotations
 
+import json
 import logging
+from functools import lru_cache
 
 import chromadb
 
 from config import CHROMA_DIR, COLLECTION_NAME
-from src.chunking import Chunk
+from src.chunking import IndexItem
 from src.embeddings import embed_documents, embedding_dim
 
 logger = logging.getLogger(__name__)
+
+PARENTS_PATH = CHROMA_DIR / "parents.json"
 
 
 def _client() -> chromadb.ClientAPI:
@@ -36,20 +45,39 @@ def get_collection(reset: bool = False):
     )
 
 
-def index_chunks(chunks: list[Chunk], batch_size: int = 256) -> int:
-    """Embed and upsert chunks into a fresh collection. Returns count indexed."""
+def index_items(items: list[IndexItem], parents: dict, batch_size: int = 256) -> int:
+    """Embed and upsert items into a fresh collection; persist parents sidecar.
+
+    Returns the number of items indexed.
+    """
     col = get_collection(reset=True)
-    for start in range(0, len(chunks), batch_size):
-        batch = chunks[start : start + batch_size]
-        embeddings = embed_documents([c.text for c in batch])
+    for start in range(0, len(items), batch_size):
+        batch = items[start : start + batch_size]
+        embeddings = embed_documents([it.text for it in batch])
         col.add(
-            ids=[c.chunk_id for c in batch],
+            ids=[it.id for it in batch],
             embeddings=embeddings,
-            documents=[c.text for c in batch],
-            metadatas=[c.metadata for c in batch],
+            documents=[it.text for it in batch],
+            metadatas=[it.metadata for it in batch],
         )
-        logger.info("Indexed %d/%d", min(start + batch_size, len(chunks)), len(chunks))
+        logger.info("Indexed %d/%d", min(start + batch_size, len(items)), len(items))
+
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    PARENTS_PATH.write_text(json.dumps(parents))
+    logger.info("Wrote %d parents to %s", len(parents), PARENTS_PATH)
     return col.count()
+
+
+@lru_cache(maxsize=1)
+def _parents() -> dict:
+    if PARENTS_PATH.exists():
+        return json.loads(PARENTS_PATH.read_text())
+    return {}
+
+
+def get_parent(parent_id: str) -> dict | None:
+    """Look up a parent chunk by id (small-to-big mode)."""
+    return _parents().get(parent_id)
 
 
 def query(query_embedding: list[float], top_n: int) -> list[dict]:

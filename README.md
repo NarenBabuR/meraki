@@ -13,12 +13,19 @@ failure mode is a single config flag.
 ## What it does
 
 ```
-arXiv PDFs ──► extract ──► chunk ──► embed (local BGE) ──► ChromaDB
-                                                              │
-query ──► embed query ──► vector search (top_n) ──► threshold
-       ──► cross-encoder rerank ──► relevance gate ──► top_k
-       ──► Claude (grounded, abstains when nothing relevant) ──► answer + cited sources
+arXiv PDFs ─► extract ─► section-tag ─► parent (1024) → child (256) chunks
+                                          │ embed children (local BGE)
+                                          ▼
+                                       ChromaDB  +  parents sidecar
+query ─► embed ─► vector search (top_n) ─► threshold ─► cross-encoder rerank
+      ─► relevance gate ─► merge children → parents (top_k) ─► Claude (grounded, abstains)
+      ─► answer + cited sources (with section)
 ```
+
+**Chunking is small-to-big** (default): embed small ~256-char *children* for
+precise matching, but return the ~1024-char *parent* to the LLM for context. Each
+chunk is tagged with its paper section. Set `SMALL_TO_BIG=false` for flat 1024
+chunking. (See the write-up for the measured flat-vs-small-to-big tradeoff.)
 
 - **Generation + eval judge:** Claude (Anthropic API) — the only thing that
   needs a key.
@@ -93,7 +100,9 @@ All knobs live in [`config.py`](config.py) and are environment-overridable; see
 
 | Var | Default | Effect |
 |---|---|---|
-| `CHUNK_SIZE` | 1024 | chunk length (re-index after changing) |
+| `SMALL_TO_BIG` | `true` | parent/child retrieval + section metadata (re-index after changing) |
+| `CHUNK_SIZE` | 1024 | parent / flat chunk length (re-index) |
+| `CHILD_CHUNK_SIZE` | 256 | child chunk length in small-to-big (re-index) |
 | `EMBED_MODEL` | `BAAI/bge-small-en-v1.5` | embedding model (re-index after changing) |
 | `USE_QUERY_INSTRUCTION` | `true` | BGE query-prefix asymmetry — **Break #2** |
 | `TOP_N` / `TOP_K` | 25 / 5 | candidate pool / final chunks to the LLM |
@@ -109,11 +118,12 @@ All knobs live in [`config.py`](config.py) and are environment-overridable; see
 config.py            # single source of truth for all toggles
 src/
   ingest.py          # arXiv download + pypdf text extraction
-  chunking.py        # recursive splitter + dedupe
+  sectioning.py      # detect paper sections; offset -> page/section mapping
+  chunking.py        # flat OR small-to-big (parent/child) chunking + dedupe
   embeddings.py      # local BGE; query/doc instruction asymmetry
-  vectorstore.py     # ChromaDB persistent (cosine)
+  vectorstore.py     # ChromaDB persistent (cosine) + parents sidecar
   rerank.py          # local cross-encoder reranker
-  retriever.py       # embed -> top_n -> threshold -> rerank -> gate -> top_k
+  retriever.py       # embed -> top_n -> threshold -> rerank -> gate -> merge-to-parents
   generate.py        # Claude wrapper: retry/fallback + abstention prompt
   pipeline.py        # ties retrieval + generation; returns answer + contexts
 scripts/

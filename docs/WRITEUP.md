@@ -85,6 +85,31 @@ So I gate on the cross-encoder score (`RERANK_THRESHOLD = -3.0`): if no chunk
 clears the bar, the retriever returns nothing and the generator abstains. This is
 both a precision booster *and* the mechanism behind the FIX in §5.
 
+**Chunking: small-to-big (parent/child).** The default chunking embeds small
+~256-char **children** for precise matching but returns the ~1024-char **parent**
+each match belongs to (de-duplicated) — the LangChain ParentDocumentRetriever /
+"auto-merging" idea, implemented in ~40 lines without the framework. Each chunk is
+also tagged with its detected paper **section** (`src/sectioning.py`) for richer
+citations. I implemented it as a toggle (`SMALL_TO_BIG`) and measured it against
+flat 1024-char chunking — and the result is an honest tradeoff, not a clean win:
+
+| In-domain | Flat (1024) | Small-to-big | Δ |
+|---|---|---|---|
+| Context Precision | 0.85 | 0.76 | −0.09 |
+| Context Recall | 0.93 | 0.89 | −0.04 |
+| **Faithfulness** | 0.91 | **0.98** | **+0.07** |
+| Retrieval latency (mean) | 327 ms | **142 ms** | −57% |
+
+Small-to-big **improved faithfulness and halved retrieval latency**, but **lowered
+Ragas context-precision**. The precision drop is largely a *metric artifact*:
+Ragas scores each *returned* unit, and a 1024-char parent contains the answer plus
+surrounding prose, so there's more "non-answer" text per unit even though
+retrieval *found* the answer precisely (via the child) and the LLM answered it
+well — which is exactly why faithfulness went *up*. I shipped small-to-big as the
+default because faithfulness and citation context matter most for a system meant
+to be trusted, but this is a genuine tradeoff I'd defend, not a free lunch.
+(`flat_baseline.json` keeps the flat numbers for comparison.)
+
 ---
 
 ## 3. Evaluation framework
@@ -135,71 +160,83 @@ differently:
 
 | Subset | Context Precision | Context Recall | Faithfulness | Answer Relevancy |
 |---|---|---|---|---|
-| In-domain (18) | 0.85 | 0.93 | 0.91 | 0.92 |
-| Multi-hop (4) | 0.57 | 0.75 | 0.77 | 0.65 |
-| Out-of-domain (4) | 0.00 | 0.00 | 0.50 | 0.00 |
+| In-domain (18) | 0.76 | 0.89 | 0.98 | 0.88 |
+| Multi-hop (4) | 0.46 | 0.75 | 0.78 | 0.66 |
+| Out-of-domain (4) | 0.00 | 0.00 | 0.75 | 0.00 |
+
+(Default config = **small-to-big** retrieval; see §2 for how this compares to flat
+chunking.)
 
 Read this honestly:
 
-- **In-domain QA is strong** — precision 0.85, recall 0.93, faithfulness 0.91.
-- **Multi-hop is the weak spot** — precision drops to 0.57; retrieval often finds
-  one hop but not both. This is the clearest quality gap (see §7).
+- **In-domain QA is strong** — faithfulness 0.98, recall 0.89. Context precision
+  (0.76) is lower than answer quality because we return ~1024-char *parent* chunks
+  (answer + surrounding context), which Ragas scores as less "precise" per unit
+  even when the answer is right (§2).
+- **Multi-hop is the weak spot** — precision 0.46; retrieval often finds one hop
+  but not both. This is the clearest quality gap (see §7).
 - **Out-of-domain rows score ~0 by design** — the system abstains, so there are no
   retrieved contexts (precision/recall = 0) and an abstention doesn't "address"
   the question (relevancy = 0). These are *good* zeros. They also mean a single
   blended "overall" number is misleading, which is why I don't lead with one — and
   why measuring the OOD behavior needs a different instrument (§5).
 
-Latency: retrieval ~327 ms mean (p95 729 ms), generation ~3.7 s (Sonnet).
+Latency: retrieval ~142 ms mean (p95 229 ms), generation ~4.1 s (Sonnet).
 
 ---
 
-## 4. Build / Break: two documented failure modes
+## 4. Build / Break: documented failure modes
 
 Each failure mode is one config flag, so the before/after is reproducible
-(`<FLAG>=… python scripts/run_eval.py --tag …`). Result files are committed under
-[`data/eval/results/`](../data/eval/results/).
+(`<FLAG>=… python scripts/run_eval.py --tag …`). Numbers below are on the shipped
+**small-to-big** config; result files are committed under
+[`data/eval/results/`](../data/eval/results/). A theme runs through this section:
+**a failure mode is a property of a configuration, not of "RAG" in the abstract** —
+change the architecture and you have to re-verify, which is exactly what the eval
+harness is for.
 
 ### Break #1 — No reranking (`RERANK=false`)
 
-The bi-encoder's top-5 by cosine is *not* the best top-5. Measured on the
-**in-domain** subset (where retrieval quality is the whole story):
+The bi-encoder's top hits by cosine are *not* the best hits. Without the
+cross-encoder, worse children are selected, so the parents we hand the LLM are
+worse — and the answer is less grounded (in-domain subset):
 
 | Metric (in-domain) | Baseline | No rerank | Δ |
 |---|---|---|---|
-| Context Precision | 0.85 | **0.63** | **−0.22** |
-| Context Recall | 0.93 | 0.67 | **−0.26** |
-| Answer Relevancy | 0.92 | 0.82 | −0.10 |
+| **Faithfulness** | 0.98 | **0.85** | **−0.12** |
+| Context Precision | 0.76 | 0.71 | −0.05 |
 
-Context precision falls 0.85 → 0.63 and recall 0.93 → 0.67. The lesson: with a
-high-floor bi-encoder, **reranking isn't a nice-to-have — it's what makes
-retrieval precise.**
+The lesson: **reranking earns its place** — it improves both precision and, more
+importantly here, the faithfulness of the generated answer.
 
-*Why in-domain, not overall?* At the overall level the precision drop looks small
-(0.67 → 0.62) — but that's a measurement artifact, and a useful one to understand.
-Turning off rerank also removes the relevance gate, so out-of-domain queries now
-retrieve (irrelevant) chunks instead of abstaining; Ragas then scores those OOD
-contexts non-zero, which *inflates* the overall average and masks the real
-in-domain damage. Slicing by subset is what makes the true effect legible — a
-recurring theme in this eval.
+*A note on how this differs from flat chunking.* On the flat 1024-char index the
+same flag caused a much larger *precision/recall* drop (0.85→0.63 precision,
+0.93→0.67 recall; see `flat_baseline` vs the flat run). Under small-to-big the
+precision hit is muted because parent-merging absorbs some of the imprecision —
+the damage resurfaces as *faithfulness* instead. Same root cause, different
+metric: the reason you slice by subset *and* watch multiple metrics.
 
 ### Break #2 — Query/document embedding mismatch (`USE_QUERY_INSTRUCTION=false`)
 
 BGE retrieval models are trained with an instruction prefix on **queries only**
-(`"Represent this sentence for searching relevant passages: "`). Forgetting it —
-an easy, invisible bug — embeds queries and documents in subtly mismatched ways:
+(`"Represent this sentence for searching relevant passages: "`). Forgetting it is
+an easy, invisible bug. This is the most interesting break, because **its impact
+depends entirely on the chunking strategy:**
 
-| Metric (in-domain) | Baseline | No query instruction | Δ |
+| Context Recall (in-domain) | Baseline | No query instruction | Δ |
 |---|---|---|---|
-| Context Recall | 0.93 | 0.83 | **−0.10** |
-| Context Precision | 0.85 | 0.80 | −0.05 |
+| Flat 1024 chunks | 0.93 | 0.83 | **−0.10** |
+| Small-to-big (shipped) | 0.89 | 0.94 | +0.05 (noise) |
 
-Honest finding: the degradation is **real but graceful** — recall drops ~10
-points, precision ~5 — not catastrophic, because `bge-small` still retrieves
-reasonably without the prefix. I'm documenting rather than fixing it because (a)
-it's already correct in the baseline, and (b) it's exactly the kind of silent
-single-digit regression that an eval harness catches and a vibe-check never would.
-At 100k queries/day, 10 points of recall is a lot of unanswered questions.
+On the **flat** index the missing prefix clearly cost ~10 points of recall. On the
+**small-to-big** index the effect *disappeared* — short 256-char children plus
+parent-merging are robust enough that the prefix stops mattering on this corpus.
+
+The honest takeaway isn't "the prefix doesn't matter" — it's that **I would have
+shipped a latent bug and never known.** On the flat system it's a real 10-point
+regression; a chunking change masked it. Only a re-run of the eval after the
+architecture change reveals that the failure mode moved. That's the case for
+keeping eval in CI (§6), not a footnote.
 
 ---
 
@@ -220,18 +257,23 @@ citation.
 ### First attempt to measure it — and why Ragas faithfulness was the wrong tool
 
 My instinct was to measure this with Ragas faithfulness on the OOD subset. That
-turned out to be a trap, and the trap is instructive. Under a **Haiku** judge,
-turning the fix off dropped OOD faithfulness 0.50 → 0.18 — a clean story. Under
-the **Sonnet** judge, the same comparison was 0.50 → 0.50 — *no signal at all.*
+turned out to be a trap, and the trap is instructive — the same before/after gave
+wildly different signals depending on the judge *and* the config:
+
+| OOD faithfulness, fix ON → OFF | result |
+|---|---|
+| Haiku judge, flat index | 0.50 → 0.18 (big drop) |
+| Sonnet judge, flat index | 0.50 → 0.50 (**no signal**) |
+| Sonnet judge, small-to-big | 0.75 → 0.21 (big drop) |
 
 The reason: faithfulness scores whether the answer's claims are supported by the
 **retrieved context**. But a correctly-gated OOD query has *no* retrieved context
 (an empty placeholder), so "faithfulness to nothing" is degenerate — and different
-judges resolve that degenerate case differently. Faithfulness is the right metric
-for "did the answer stick to the documents," but it is the **wrong instrument for
-measuring abstention**, and it's judge-dependent exactly where I needed it to be
-solid. That's a real lesson about not trusting a metric outside the regime it was
-designed for.
+judges/configs resolve that degenerate case differently. Faithfulness is the right
+metric for "did the answer stick to the documents," but it is an **unreliable
+instrument for measuring abstention**: here it ranged from a decisive signal to
+none at all without the underlying behavior changing. That's a real lesson about
+not trusting a metric outside the regime it was designed for.
 
 ### The right tool: a direct, deterministic abstention metric
 
@@ -245,14 +287,16 @@ hallucination.
 |---|---|---|
 | **Out-of-domain hallucination rate** | **0%** (0/4) | **75%** (3/4) |
 | Out-of-domain correct abstention | 100% | 25% |
-| In-domain over-refusal | 0% (answers all 18) | 0% |
+| In-domain over-refusal | 6% (1/18) | 0% |
 
 This is the before/after that matters: with the guardrail off, **3 of 4
 unanswerable questions get confident, fabricated answers**; with it on, the system
-declines all four — and crucially does **not** over-refuse, answering every
-in-domain question. (The lone OOD refusal in the Fix-OFF column is Claude's own
-caution on the Apple-earnings question — a reminder the base model helps a little,
-but not reliably.)
+declines all four. (The lone OOD refusal in the Fix-OFF column is Claude's own
+caution on the Apple-earnings question — the base model helps a little, but not
+reliably.) The cost of the fix is small but real and worth naming: **one in-domain
+question (6%) is now over-refused** — the guardrail occasionally declines a
+question it could have answered. That's the safety/coverage tradeoff made
+measurable, not hidden.
 
 ### Where automated eval still disagrees with judgment
 
@@ -312,9 +356,10 @@ backend (autoscaled) + a real frontend; keep Streamlit as the internal tool.
 
 **The highest-leverage fix is organizational, not architectural:** wire this eval
 harness into CI so every change to chunking, models, or prompts runs against the
-gold set and fails the PR on a regression. Break #2 — a silent 5-point recall drop
-— is exactly the class of bug that ships unnoticed without it. That protects every
-other change I'd make.
+gold set and fails the PR on a regression. Break #2 is the proof: a query-embedding
+bug that costs 10 points of recall on one chunking strategy and is invisible on
+another — exactly the class of regression that ships unnoticed without an eval
+gate. That protects every other change I'd make.
 
 ---
 
@@ -327,7 +372,7 @@ other change I'd make.
 - **Hybrid (BM25 + dense) retrieval** — dense + cross-encoder is sufficient here
   and avoids a second index. The clearest *next* upgrade.
 - **Multi-hop / agentic query decomposition** — would directly attack the weakest
-  measured subset (multi-hop recall 0.50), but it's a rabbit hole I scoped out.
+  measured subset (multi-hop precision 0.46), but it's a rabbit hole I scoped out.
 - **Synthetic eval data** — hand-curation was faster and more trustworthy.
 - **Multimodal / tables / figures** — arXiv math and two-column layouts extract
   imperfectly with `pypdf`; I targeted prose and dropped reference sections.
@@ -337,11 +382,11 @@ other change I'd make.
 1. **Grow the gold set to ~100+ questions** with more OOD and multi-hop coverage,
    so subset numbers are statistically meaningful (current caveat in §5).
 2. **Multi-hop retrieval** — query decomposition / sub-question retrieval to lift
-   the 0.50 multi-hop recall, the clearest quality gap.
-3. **Learn the abstention threshold** instead of the hand-tuned `-3.0` — calibrate
-   it from labeled relevant/irrelevant pairs rather than eyeballing the
-   distribution.
+   the 0.46 multi-hop precision, the clearest quality gap.
+3. **Tune child size / learn the abstention threshold** — the small-to-big child
+   size (256) and the hand-tuned `-3.0` gate were set by eye; both should be swept
+   against the gold set and the threshold calibrated from labeled pairs.
 4. **Hybrid retrieval** for exact-term queries (model names, metrics, numbers)
    where dense embeddings underperform sparse matching.
 5. **CI eval gate** (§6) — cheap, and it's what keeps quality from silently
-   eroding.
+   eroding (Break #2 is the cautionary tale).

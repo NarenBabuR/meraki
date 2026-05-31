@@ -49,8 +49,14 @@ def _float(name: str, default: float) -> float:
 @dataclass(frozen=True)
 class Config:
     # --- Chunking (changing these requires a re-index) ---
-    chunk_size: int = _int("CHUNK_SIZE", 1024)
+    chunk_size: int = _int("CHUNK_SIZE", 1024)          # parent / flat chunk size
     chunk_overlap_ratio: float = _float("CHUNK_OVERLAP_RATIO", 0.2)
+    # Small-to-big (parent/child) retrieval: embed small children for precise
+    # matching, but return the larger parent chunk to the LLM. Also attaches the
+    # detected paper section to each chunk's metadata. Set false for flat
+    # single-size chunking. Changing this requires a re-index.
+    small_to_big: bool = _bool("SMALL_TO_BIG", True)
+    child_chunk_size: int = _int("CHILD_CHUNK_SIZE", 256)
 
     # --- Embeddings ---
     embed_model: str = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
@@ -101,7 +107,8 @@ def describe() -> str:
     """Human-readable one-liner of the toggles that matter for experiments."""
     c = CONFIG
     return (
-        f"chunk_size={c.chunk_size} top_n={c.top_n} top_k={c.top_k} "
+        f"small_to_big={c.small_to_big} chunk_size={c.chunk_size} "
+        f"child_chunk_size={c.child_chunk_size} top_n={c.top_n} top_k={c.top_k} "
         f"rerank={c.rerank} query_instruction={c.use_query_instruction} "
         f"abstain={c.abstain} gen={c.gen_model}"
     )

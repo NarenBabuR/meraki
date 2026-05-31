@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import describe  # noqa: E402
 from src.ingest import download_papers, ingest_all  # noqa: E402
-from src.chunking import chunk_pages  # noqa: E402
-from src.vectorstore import index_chunks  # noqa: E402
+from src.chunking import build_chunks  # noqa: E402
+from src.vectorstore import index_items  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("build_index")
@@ -29,9 +29,11 @@ def main() -> None:
     log.info("%d papers available", len(papers))
     pages = ingest_all(papers)
     log.info("%d total pages of text", len(pages))
-    chunks = chunk_pages(pages)
-    count = index_chunks(chunks)
-    log.info("DONE — indexed %d chunks into Chroma", count)
+    items, parents = build_chunks(pages)
+    count = index_items(items, parents)
+    log.info(
+        "DONE — indexed %d items (%d parents) into Chroma", count, len(parents)
+    )
 
 
 if __name__ == "__main__":

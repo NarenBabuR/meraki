@@ -72,7 +72,10 @@ def _format_context(contexts: list[dict]) -> str:
     blocks = []
     for i, c in enumerate(contexts, start=1):
         meta = c.get("metadata", {})
-        cite = f"{meta.get('title', '?')} (arXiv:{meta.get('arxiv_id', '?')}, p.{meta.get('page', '?')})"
+        cite = f"{meta.get('title', '?')} (arXiv:{meta.get('arxiv_id', '?')}, p.{meta.get('page', '?')}"
+        if meta.get("section"):
+            cite += f", §{meta['section']}"
+        cite += ")"
         blocks.append(f"[{i}] {cite}\n{c['text']}")
     return "\n\n".join(blocks)
 
