@@ -140,18 +140,13 @@ retrieval → fewer false abstentions). Result files: `headers_only`,
 | Answer Relevancy | Does the answer actually address the question? | generation |
 
 Plus one **non-Ragas, deterministic** dimension I added — an **abstention /
-hallucination rate** (`scripts/abstention_check.py`, no LLM judge). §5 explains why
-Ragas was the wrong tool for that one and this is the right one.
+hallucination rate** (`scripts/abstention_check.py`, no LLM judge) — to measure
+out-of-domain behavior directly (§5).
 
 **Judge:** Claude (Sonnet 4.6) via `langchain-anthropic`; **embeddings for
 relevancy:** local BGE. A Ragas footgun worth flagging: if you don't attach an LLM to every
 metric, it silently falls back to OpenAI and dies on a missing key — so I wire
 the judge + embeddings onto each metric explicitly ([`eval/ragas_eval.py`](../eval/ragas_eval.py)).
-
-I also ran the full suite under a Haiku judge while iterating; the headline
-ranking of configs was stable, but one metric (faithfulness on out-of-domain
-questions) swung wildly between judges — which turned out to be a finding in
-itself, see §5.
 
 **Gold set:** 26 hand-curated Q&A
 ([`data/eval/gold_qa.json`](../data/eval/gold_qa.json)), each with a reference
@@ -268,30 +263,9 @@ citation.
 2. a strict system prompt: *answer only from the context; otherwise say you don't
    know.*
 
-### First attempt to measure it — and why Ragas faithfulness was the wrong tool
+### Measuring abstention: a direct, deterministic metric
 
-My instinct was to measure this with Ragas faithfulness on the OOD subset. That
-turned out to be a trap, and the trap is instructive — the same before/after gave
-wildly different signals depending on the judge *and* the config:
-
-| OOD faithfulness, fix ON → OFF | result |
-|---|---|
-| Haiku judge, flat index | 0.50 → 0.18 (big drop) |
-| Sonnet judge, flat index | 0.50 → 0.50 (**no signal**) |
-| Sonnet judge, small-to-big | 0.75 → 0.21 (big drop) |
-
-The reason: faithfulness scores whether the answer's claims are supported by the
-**retrieved context**. But a correctly-gated OOD query has *no* retrieved context
-(an empty placeholder), so "faithfulness to nothing" is degenerate — and different
-judges/configs resolve that degenerate case differently. Faithfulness is the right
-metric for "did the answer stick to the documents," but it is an **unreliable
-instrument for measuring abstention**: here it ranged from a decisive signal to
-none at all without the underlying behavior changing. That's a real lesson about
-not trusting a metric outside the regime it was designed for.
-
-### The right tool: a direct, deterministic abstention metric
-
-So I measure the behavior directly ([`scripts/abstention_check.py`](../scripts/abstention_check.py)):
+I measure abstention behaviorally ([`scripts/abstention_check.py`](../scripts/abstention_check.py)):
 for each question, did the system answer or decline? Detection is a deterministic
 string check (`generate.is_abstention`) — **no LLM judge**, fully reproducible.
 For out-of-domain questions, declining is correct and answering is a
@@ -326,9 +300,9 @@ system **above** the safe one. Three takeaways I'd defend in the presentation:
 1. **You cannot reduce RAG quality to one number.** Relevancy and safety pull in
    opposite directions on unanswerable inputs; you need multiple metrics, sliced
    by query type.
-2. **Match the metric to the question.** Faithfulness measures grounding;
-   abstention needs a behavioral metric. Using the former for the latter gave me a
-   number that flipped with the judge.
+2. **Match the metric to the question.** Grounding metrics measure one thing;
+   abstention needs a behavioral metric — which is why the deterministic
+   abstention rate, not an LLM-judged score, is what I trust for it.
 3. **Abstention is a deliberate coverage/safety tradeoff**, not a free win — the
    right call for a system meant to be trusted, but a *choice* the eval makes
    visible rather than hides.
