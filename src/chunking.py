@@ -3,22 +3,21 @@
 Flat mode: one recursive splitter, ~1024-char chunks, dedupe. Each chunk is both
 what we embed and what we show.
 
-Small-to-big mode (default): split each paper into ~1024-char **parents**, then
-split each parent into ~256-char **children**. We embed the children (precise
-matching against short, focused text) but return the **parent** to the LLM (enough
-surrounding context to answer). Every chunk also carries its detected paper
-`section` (see sectioning.py). This is the LangChain ParentDocumentRetriever /
-"auto-merging" idea, implemented without the framework.
+Small-to-big mode (default): we produce LangChain Document objects representing
+parent chunks (~1024 chars), each annotated with the detected paper section.
+ParentDocumentRetriever (vectorstore.py) then splits each parent into children
+(~256 chars) via ContextualChildSplitter, stores children in Chroma, and stores
+parents in a LocalFileStore. At query time it maps child hits back to parents.
 
-Both modes emit a uniform `IndexItem` list (what gets embedded + stored) plus a
-`parents` dict (empty in flat mode). The de-dupe trick from the original matters
-either way: arXiv PDFs repeat headers/footers across pages.
+This is the LangChain ParentDocumentRetriever pattern — vectorstore.py wires
+the retriever; chunking.py's job is producing the right Document objects.
 """
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
 
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from config import CONFIG
@@ -33,16 +32,8 @@ from src.sectioning import (
 
 logger = logging.getLogger(__name__)
 
-# Paragraph/line-oriented separators (the non-markdown subset of the original).
+# Paragraph/line-oriented separators.
 SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
-
-
-@dataclass
-class IndexItem:
-    """One unit to embed + store in the vector DB."""
-    id: str
-    text: str
-    metadata: dict = field(default_factory=dict)
 
 
 def _splitter(size: int, add_start_index: bool = False) -> RecursiveCharacterTextSplitter:
@@ -56,8 +47,16 @@ def _splitter(size: int, add_start_index: bool = False) -> RecursiveCharacterTex
 
 
 # --------------------------------------------------------------------------- #
-# Flat mode
+# Flat mode (unchanged)
 # --------------------------------------------------------------------------- #
+@dataclass
+class IndexItem:
+    """One unit to embed + store in the vector DB (flat mode only)."""
+    id: str
+    text: str
+    metadata: dict = field(default_factory=dict)
+
+
 def chunk_pages(pages: list[Page]) -> list[IndexItem]:
     """Per-page recursive chunking with dedupe (flat mode)."""
     splitter = _splitter(CONFIG.chunk_size)
@@ -88,77 +87,75 @@ def chunk_pages(pages: list[Page]) -> list[IndexItem]:
 
 
 # --------------------------------------------------------------------------- #
-# Small-to-big mode
+# Small-to-big mode — LangChain Document objects
 # --------------------------------------------------------------------------- #
-def _build_hierarchical(pages: list[Page]) -> tuple[list[IndexItem], dict]:
-    parent_splitter = _splitter(CONFIG.chunk_size, add_start_index=True)
-    child_splitter = _splitter(CONFIG.child_chunk_size)
+class ContextualChildSplitter(RecursiveCharacterTextSplitter):
+    """Child splitter for ParentDocumentRetriever.
 
-    children: list[IndexItem] = []
-    parents: dict[str, dict] = {}
-    seen: set[str] = set()
+    Splits parent text into ~256-char children. If CONTEXTUAL_HEADERS is on,
+    prepends '<title> — <section>' to each child before embedding so the vector
+    captures document provenance (lightweight contextual retrieval).
+
+    The seen set deduplicates across all parents within one add_documents call,
+    matching the behaviour of the old _build_hierarchical function.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._seen: set[str] = set()
+
+    def split_documents(self, documents: list[Document]) -> list[Document]:
+        result: list[Document] = []
+        for doc in documents:
+            title = doc.metadata.get("title", "")
+            section = doc.metadata.get("section", "")
+            for chunk in self.split_text(doc.page_content):
+                chunk = chunk.strip()
+                if len(chunk) < 40:
+                    continue
+                key = chunk.lower()
+                if key in self._seen:
+                    continue
+                self._seen.add(key)
+                if CONFIG.contextual_headers and title:
+                    embed_text = f"{title} — {section}\n\n{chunk}"
+                else:
+                    embed_text = chunk
+                result.append(Document(
+                    page_content=embed_text,
+                    metadata={**doc.metadata},
+                ))
+        return result
+
+
+def pages_to_documents(pages: list[Page]) -> list[Document]:
+    """Convert extracted pages to parent Document objects for ParentDocumentRetriever.
+
+    Each Document is one parent chunk (~1024 chars) with section and page metadata.
+    ParentDocumentRetriever will split these into children via ContextualChildSplitter.
+    """
+    parent_splitter = _splitter(CONFIG.chunk_size, add_start_index=True)
+    docs: list[Document] = []
 
     for arxiv_id, doc_pages in group_by_paper(pages):
         title = doc_pages[0].title
         full, bounds = join_pages(doc_pages)
         sections = detect_sections(full)
 
-        for pi, pdoc in enumerate(parent_splitter.create_documents([full])):
+        for pdoc in parent_splitter.create_documents([full]):
             ptext = pdoc.page_content.strip()
             if len(ptext) < 60:
                 continue
             start = pdoc.metadata.get("start_index", 0)
-            page = page_at(start, bounds)
-            section = section_at(start, sections)
-            pid = f"{arxiv_id}:p{pi}"
-            parents[pid] = {
-                "text": ptext,
-                "arxiv_id": arxiv_id,
-                "title": title,
-                "page": page,
-                "section": section,
-            }
-            for ci, ctext in enumerate(child_splitter.split_text(ptext)):
-                ctext = ctext.strip()
-                if len(ctext) < 40:
-                    continue
-                key = ctext.lower()
-                if key in seen:
-                    continue
-                seen.add(key)
-                # Contextual header: prepend paper title + section so the
-                # embedding (and BM25) capture provenance, not just local text.
-                if CONFIG.contextual_headers:
-                    embed_text = f"{title} — {section}\n\n{ctext}"
-                else:
-                    embed_text = ctext
-                children.append(
-                    IndexItem(
-                        id=f"{pid}:c{ci}",
-                        text=embed_text,
-                        metadata={
-                            "arxiv_id": arxiv_id,
-                            "title": title,
-                            "page": page,
-                            "section": section,
-                            "parent_id": pid,
-                        },
-                    )
-                )
-    logger.info(
-        "Hierarchical: %d parents, %d children from %d pages",
-        len(parents), len(children), len(pages),
-    )
-    return children, parents
+            docs.append(Document(
+                page_content=ptext,
+                metadata={
+                    "arxiv_id": arxiv_id,
+                    "title": title,
+                    "page": page_at(start, bounds),
+                    "section": section_at(start, sections),
+                },
+            ))
 
-
-# --------------------------------------------------------------------------- #
-# Dispatcher
-# --------------------------------------------------------------------------- #
-def build_chunks(pages: list[Page]) -> tuple[list[IndexItem], dict]:
-    """Return (items_to_embed, parents). `parents` is empty in flat mode."""
-    if CONFIG.small_to_big:
-        return _build_hierarchical(pages)
-    items = chunk_pages(pages)
-    logger.info("Flat: %d chunks from %d pages", len(items), len(pages))
-    return items, {}
+    logger.info("pages_to_documents: %d parent documents from %d pages", len(docs), len(pages))
+    return docs

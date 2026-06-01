@@ -59,6 +59,21 @@ class Page:
     text: str
 
 
+_METADATA_CACHE = PDF_DIR.parent / "papers_meta.json"
+
+
+def _load_meta_cache() -> dict[str, str]:
+    if _METADATA_CACHE.exists():
+        import json
+        return json.loads(_METADATA_CACHE.read_text())
+    return {}
+
+
+def _save_meta_cache(cache: dict[str, str]) -> None:
+    import json
+    _METADATA_CACHE.write_text(json.dumps(cache, indent=2))
+
+
 def download_papers(
     arxiv_ids: Iterable[str] = DEFAULT_ARXIV_IDS,
     pdf_dir: Path = PDF_DIR,
@@ -66,29 +81,46 @@ def download_papers(
     """Download PDFs for the given arXiv IDs (skips already-downloaded files).
 
     Returns a list of {arxiv_id, title, path} dicts.
+
+    Titles are cached to data/papers_meta.json after the first fetch so
+    subsequent index rebuilds never hit the arXiv API again.
     """
     pdf_dir.mkdir(parents=True, exist_ok=True)
     ids = list(arxiv_ids)
-    client = arxiv.Client(page_size=50, delay_seconds=3, num_retries=3)
-    results = list(client.results(arxiv.Search(id_list=ids)))
+    meta_cache = _load_meta_cache()
 
-    # python.org builds on macOS often lack a system CA bundle; use certifi's.
-    ssl_ctx = ssl.create_default_context(cafile=certifi.where())
-    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_ctx))
-    opener.addheaders = [("User-Agent", "meraki-rag/1.0 (research)")]
+    # Only call arXiv API for IDs not already cached.
+    missing_ids = [aid for aid in ids if aid not in meta_cache]
+
+    if missing_ids:
+        client = arxiv.Client(page_size=50, delay_seconds=3, num_retries=3)
+        results = list(client.results(arxiv.Search(id_list=missing_ids)))
+
+        ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_ctx))
+        opener.addheaders = [("User-Agent", "meraki-rag/1.0 (research)")]
+
+        for r in results:
+            aid = r.get_short_id().split("v")[0]
+            meta_cache[aid] = r.title.strip()
+            path = pdf_dir / f"{aid}.pdf"
+            if not path.exists():
+                logger.info("Downloading %s — %s", aid, r.title)
+                with opener.open(r.pdf_url, timeout=60) as resp:
+                    path.write_bytes(resp.read())
+                time.sleep(3)
+            else:
+                logger.info("Skipping %s (already present)", aid)
+
+        _save_meta_cache(meta_cache)
+    else:
+        logger.info("All %d papers in metadata cache, skipping arXiv API call", len(ids))
 
     papers: list[dict] = []
-    for r in results:
-        aid = r.get_short_id().split("v")[0]  # strip version suffix
+    for aid in ids:
         path = pdf_dir / f"{aid}.pdf"
-        if not path.exists():
-            logger.info("Downloading %s — %s", aid, r.title)
-            with opener.open(r.pdf_url, timeout=60) as resp:
-                path.write_bytes(resp.read())
-            time.sleep(3)  # be polite to arXiv
-        else:
-            logger.info("Skipping %s (already present)", aid)
-        papers.append({"arxiv_id": aid, "title": r.title.strip(), "path": str(path)})
+        title = meta_cache.get(aid, aid)  # fallback to ID if somehow missing
+        papers.append({"arxiv_id": aid, "title": title, "path": str(path)})
     return papers
 
 

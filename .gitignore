@@ -7,6 +7,7 @@ venv/
 # Corpus + index are reproducible from scripts/build_index.py — don't commit binaries.
 data/pdfs/
 data/chroma/
+data/papers_meta.json
 
 # Eval result JSONs ARE committed (the before/after evidence) — keep them.
 # Everything else under data/eval/ stays tracked.

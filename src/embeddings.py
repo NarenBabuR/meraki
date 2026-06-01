@@ -49,3 +49,19 @@ def embed_query(query: str) -> list[float]:
         text = CONFIG.query_instruction + query
     vec = _model().encode([text], normalize_embeddings=True)[0]
     return vec.tolist()
+
+
+class BGEEmbeddings:
+    """LangChain Embeddings-compatible wrapper around the local BGE model.
+
+    Required by langchain_chroma.Chroma, which expects an object with
+    embed_documents / embed_query methods matching the LangChain Embeddings ABC.
+    We inherit the interface without importing langchain_core here so this module
+    stays usable even if the langchain stack is not installed.
+    """
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return embed_documents(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return embed_query(text)
