@@ -1,7 +1,6 @@
 const pptxgen = require("pptxgenjs");
 const pres = new pptxgen();
 pres.layout = "LAYOUT_16x9"; // 10 x 5.625
-pres.author = "NarenBabuR";
 pres.title = "RAG Pipeline: Build, Break, Fix";
 
 // ---- palette ----
@@ -63,7 +62,7 @@ s.addText([
 ], { x: 0.65, y: 2.55, w: 9, h: 0.9, fontFace: HF, fontSize: 50, bold: true });
 s.addText("A retrieval-augmented QA system over ~20 arXiv ML papers — stress-tested, measured, and hardened.",
   { x: 0.7, y: 3.7, w: 8.6, h: 0.6, fontFace: BF, fontSize: 16, color: "CBD5E1" });
-s.addText("NarenBabuR   ·   github.com/NarenBabuR/meraki", { x: 0.7, y: 4.75, w: 9, h: 0.4, fontFace: BF, fontSize: 13, color: "94A3B8" });
+s.addText("github.com/NarenBabuR/meraki", { x: 0.7, y: 4.75, w: 9, h: 0.4, fontFace: BF, fontSize: 13, color: "94A3B8" });
 
 // ============================================================ 2. WHAT I BUILT
 s = pres.addSlide();
@@ -107,7 +106,7 @@ const dec = [
   ["Local embeddings + rerank", "BGE-small + cross-encoder run on-device. Only Claude needs a key — free, reproducible, offline retrieval."],
   ["ChromaDB, embedded", "A folder on disk. No server, no Docker. The right altitude for a single-node demo."],
   ["Claude for gen + judge", "Sonnet 4.6 generates and judges eval. One vendor, one secret."],
-  ["Ported patterns, not infra", "Reused chunking / two-stage retrieval / rerank ideas from a heavy prod repo — dropped AWS, Redis, SQS, paid PDF libs."],
+  ["No cloud dependencies", "No AWS, Redis, SQS, S3, or paid PDF libraries — everything heavy runs locally and free, so it boots anywhere with one key."],
 ];
 dec.forEach((d, i) => {
   const x = 0.5 + (i % 2) * 4.6, y = 1.5 + Math.floor(i / 2) * 1.75;

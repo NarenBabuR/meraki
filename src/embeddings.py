@@ -1,8 +1,8 @@
 """Local embeddings via sentence-transformers (BGE).
 
-Mirrors the search_query / search_document asymmetry from file-processor's
-Cohere usage: BGE retrieval models are trained with an instruction prefix on
-*queries only*. `embed_documents` never prefixes; `embed_query` prefixes iff
+BGE retrieval models are trained with an instruction prefix on *queries only*
+(the query/document asymmetry common to instruction-tuned retrievers).
+`embed_documents` never prefixes; `embed_query` prefixes iff
 CONFIG.use_query_instruction. Dropping the prefix (Break #2) creates a
 representation mismatch between queries and documents and degrades recall.
 

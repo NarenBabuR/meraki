@@ -117,7 +117,7 @@ corpus is identical for anyone who runs it.
 **`ingest_all(papers)`** — runs `extract_pages` over every paper, returns all
 `Page`s flattened into one list.
 
-> Why `pypdf` and not the fancy PyMuPDF Pro the original `file-processor` used?
+> Why `pypdf` and not a heavier parser (PyMuPDF Pro, etc.)?
 > arXiv papers are born-digital, so plain `pypdf` extracts them fine — and it's
 > free and dependency-light. Math/two-column layouts extract imperfectly; we
 > compensate by chunking carefully and de-duplicating (next files).
@@ -171,9 +171,8 @@ Both modes use the recursive splitter (`SEPARATORS = ["\n\n", "\n", ". ", " ",
 **de-duplicate** (a `seen` set) to drop the running headers/footers arXiv PDFs
 repeat on every page. Fragments under 40 chars are skipped.
 
-> Ported from `file-processor/src/embeddings.py` (recursive splitter + dedupe),
-> extended with the parent/child structure and section tagging; the original's
-> markdown-header splitter is dropped (irrelevant for PDFs).
+> Recursive splitting + dedupe, extended with the parent/child structure and
+> section tagging. (A markdown-header splitter would be irrelevant for PDFs.)
 
 ### 2.3 `src/embeddings.py` — turn text into vectors (locally)
 
@@ -254,8 +253,8 @@ produces **~7,250 children + ~1,620 parents** in a ~38 MB Chroma store.
 > unrelated text scores ~0.5). The cross-encoder reads the query and chunk
 > *together*, so it judges relevance far more sharply. Measured on this corpus:
 > relevant chunks score +5 to +8, off-topic chunks score −7 to −10. That gap is
-> what powers both precision and the abstention gate. It replaces the Cohere
-> reranker from `file-processor` (which needed AWS) with a free local model.
+> what powers both precision and the abstention gate — and it runs as a free,
+> local model (no cloud reranker / API).
 
 ### 3.1a `src/lexical.py` & `src/decompose.py` — hybrid + multi-hop helpers
 
@@ -290,9 +289,8 @@ return ranked[:top_k]
 ```
 
 `_candidates_for(q)` does the dense search and, when `HYBRID` is on, fuses it with
-BM25 via **Reciprocal Rank Fusion** (`_rrf`, k=60). The two-stage shape
-(**wide search → narrow rerank**) is the pattern from `file-processor`. Parts to
-highlight:
+BM25 via **Reciprocal Rank Fusion** (`_rrf`, k=60). The two-stage shape is the
+standard **wide search → narrow rerank** retrieval pattern. Parts to highlight:
 
 - **The gate** (step 4): on an out-of-domain question every child scores below
   `rerank_threshold` (−3.0), so `ranked` is empty → `retrieve` returns `[]` → the
@@ -331,8 +329,8 @@ highlight:
 4. Call Claude (`_call`) with `temperature=0`. On a retryable error, back off and
    retry up to 3×; if the primary model still fails, fall back to Sonnet 4.5.
 
-> Simplified from `file-processor/src/utils/ClaudeAnthropic.py` — same
-> retry/fallback idea, none of the usage-tracking or 4-tier complexity.
+> A deliberately small wrapper — just retry/fallback, no usage-tracking or
+> multi-tier routing.
 
 ### 3.4 `src/pipeline.py` — tie it together
 

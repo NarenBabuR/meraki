@@ -1,7 +1,7 @@
 """Corpus ingestion: download arXiv ML papers and extract per-page text.
 
-arXiv papers are born-digital PDFs, so `pypdf` is adequate — we deliberately do
-NOT pull in PyMuPDF Pro / Aspose (paid, heavy) like the file-processor repo does.
+arXiv papers are born-digital PDFs, so `pypdf` is adequate — we deliberately
+avoid heavy/paid parsers (PyMuPDF Pro, Aspose) to keep the repo light and free.
 Two-column layouts and equations extract imperfectly; we mitigate downstream by
 chunking per page and de-duplicating repeated headers/footers (see chunking.py).
 """

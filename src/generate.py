@@ -1,6 +1,6 @@
 """Answer generation with Claude.
 
-Ported (and heavily simplified) from file-processor/src/utils/ClaudeAnthropic.py:
+A small wrapper around the Anthropic SDK:
 - retry with backoff on transient errors (429 / 500 / 529)
 - one model-tier fallback (configured gen_model -> Sonnet 4.5) when the primary
   is rate-limited or overloaded

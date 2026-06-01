@@ -1,9 +1,8 @@
-"""Cross-encoder reranking — local replacement for file-processor's Cohere reranker.
+"""Cross-encoder reranking (local).
 
-file-processor reranks with Cohere rerank v3.5 via AWS Bedrock, which needs AWS
-creds. To keep the single-key constraint, we use a local sentence-transformers
-CrossEncoder instead. Same role: given (query, candidates), score each
-query/passage pair jointly and return the best `top_k`.
+To keep the single-key constraint, reranking uses a local sentence-transformers
+CrossEncoder: given (query, candidates), it scores each query/passage pair jointly
+and returns the best `top_k`.
 
 A bi-encoder (the embedding model) scores query and passage independently; a
 cross-encoder reads them together and is markedly better at precision — which is

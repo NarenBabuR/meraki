@@ -1,6 +1,6 @@
 # RAG Pipeline: Build, Break, Fix — Write-up
 
-**Author:** Naren · **Problem:** Meraki Labs PS1 · **Corpus:** ~20 arXiv ML papers
+**Problem:** Meraki Labs PS1 · **Corpus:** ~20 arXiv ML papers
 
 This document covers what I built, the decisions and tradeoffs behind it, how I
 measured quality, the failure modes I found (two documented, one fixed with
@@ -27,27 +27,14 @@ Three interfaces: a Streamlit chat UI (shows the retrieved chunks and their
 scores inline), a one-line Python API (`pipeline.answer(q)`), and the eval
 harness — which runs *the exact same pipeline*, so what I measure is what ships.
 
-### Reuse vs. rebuild
+### Design principle: runnable on a single secret
 
-I was given an existing production repo (`file-processor`) that already does
-document extraction, chunking, embedding, retrieval, and reranking. It is a
-capable system, but it's built on AWS Bedrock (Cohere embeddings + rerank),
-Redis-as-vector-store, SQS workers, S3, and paid PDF libraries (PyMuPDF Pro,
-Aspose). Handing a grader something that needs five cloud credentials to boot
-fails the "we should be able to run it" bar.
-
-So I **ported the patterns, not the infrastructure**:
-
-| Pattern (from `file-processor`) | What I kept | What I changed |
-|---|---|---|
-| Markdown-aware recursive chunking + dedupe | Recursive splitter, dedupe of repeated headers/footers | Dropped the markdown-header splitter (arXiv PDFs aren't markdown) |
-| `search_query` / `search_document` embedding asymmetry | The asymmetry, as BGE's query-instruction prefix | Cohere Bedrock → local `bge-small` |
-| Two-stage `top_n → rerank → top_k` retrieval | The wide-then-narrow structure | Added an explicit cross-encoder relevance gate |
-| Cohere rerank v3.5 (Bedrock) | The rerank step | Local `cross-encoder/ms-marco-MiniLM` (no AWS) |
-| Claude wrapper with retry/fallback | Retry on 429/500/529, Sonnet→Sonnet-4.5 fallback | Stripped the usage-tracker and 4-tier logic |
-
-Result: one secret (`ANTHROPIC_API_KEY`), `pip install`, runs offline for
-everything except generation.
+The whole system runs on one credential (`ANTHROPIC_API_KEY`). Embeddings and
+reranking are local `sentence-transformers` models, the vector store is embedded
+ChromaDB, and PDF parsing is plain `pypdf` — no cloud services, no paid libraries,
+no servers. `pip install` + one key, and everything except generation runs
+offline. "We should be able to run it" was a hard constraint, and it drove most of
+the choices in §2.
 
 ---
 

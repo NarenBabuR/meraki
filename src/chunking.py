@@ -1,7 +1,7 @@
 """Chunking — flat or small-to-big (parent/child), selected by CONFIG.small_to_big.
 
-Flat mode (ported from file-processor/src/embeddings.py): one recursive splitter,
-~1024-char chunks, dedupe. Each chunk is both what we embed and what we show.
+Flat mode: one recursive splitter, ~1024-char chunks, dedupe. Each chunk is both
+what we embed and what we show.
 
 Small-to-big mode (default): split each paper into ~1024-char **parents**, then
 split each parent into ~256-char **children**. We embed the children (precise
