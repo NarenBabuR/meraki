@@ -2,6 +2,7 @@
 anthropic>=0.40.0                 # Claude generation
 sentence-transformers>=3.0.0      # local embeddings (BGE) + cross-encoder rerank
 chromadb>=0.5.0                   # embedded persistent vector store
+rank-bm25>=0.2.2                  # sparse BM25 retrieval for hybrid search
 langchain-text-splitters>=0.3.0   # RecursiveCharacterTextSplitter (chunking)
 pypdf>=4.0.0                      # PDF text extraction (born-digital arXiv papers)
 arxiv>=2.1.0                      # fetch papers from the arXiv API

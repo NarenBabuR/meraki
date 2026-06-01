@@ -126,10 +126,16 @@ def _build_hierarchical(pages: list[Page]) -> tuple[list[IndexItem], dict]:
                 if key in seen:
                     continue
                 seen.add(key)
+                # Contextual header: prepend paper title + section so the
+                # embedding (and BM25) capture provenance, not just local text.
+                if CONFIG.contextual_headers:
+                    embed_text = f"{title} — {section}\n\n{ctext}"
+                else:
+                    embed_text = ctext
                 children.append(
                     IndexItem(
                         id=f"{pid}:c{ci}",
-                        text=ctext,
+                        text=embed_text,
                         metadata={
                             "arxiv_id": arxiv_id,
                             "title": title,

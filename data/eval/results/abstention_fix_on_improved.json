@@ -1,0 +1,183 @@
+{
+  "tag": "fix_on_improved",
+  "abstain_enabled": true,
+  "by_category": {
+    "in_domain": {
+      "abstention_rate": 0.0,
+      "n": 18
+    },
+    "multi_hop": {
+      "abstention_rate": 0.0,
+      "n": 4
+    },
+    "out_of_domain": {
+      "abstention_rate": 1.0,
+      "n": 4
+    }
+  },
+  "out_of_domain_hallucination_rate": 0.0,
+  "detail": {
+    "in_domain": [
+      {
+        "question": "What architecture does the paper that proposes dispensing with recurrence and convolutions introduce, and what is it based on?",
+        "abstained": false,
+        "n_contexts": 4,
+        "answer": "Based on the context passages, the paper introduces the **Transformer** architecture, which is based solely on **attention mechanisms**. It dispenses with recurrence and convolutions entirely, relying"
+      },
+      {
+        "question": "How many identical layers are stacked in the encoder and in the decoder of the base Transformer?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "According to the paper \"Attention Is All You Need,\" both the encoder and the decoder are each composed of a stack of **N = 6 identical layers** [1][2]."
+      },
+      {
+        "question": "What is the name of the attention function the Transformer uses, and why is the dot product scaled?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "## Transformer Attention Function\n\nThe Transformer uses **\"Scaled Dot-Product Attention\"** [4].\n\n### Formula\n$$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V$$\n\n### Wh"
+      },
+      {
+        "question": "What are the two unsupervised pre-training tasks used to train BERT?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, BERT is pre-trained using two unsupervised tasks. From passage [1], we can see that **Task #1 is Masked LM** (Masked Language Model). From passage [2], the figure descri"
+      },
+      {
+        "question": "What does the acronym BERT stand for?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context provided, BERT stands for **Bidirectional Encoder Representations from Transformers** [1]."
+      },
+      {
+        "question": "In the retrieval-augmented generation model, what are the two main components?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context, the two main components of the RAG model are:\n\n1. **A retriever** p_\u03b7(z|x) with parameters \u03b7 that returns (top-K truncated) text documents z based on the input sequence x\n2. **A "
+      },
+      {
+        "question": "What two model formulations does the retrieval-augmented generation paper propose?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context, the RAG paper proposes two model formulations:\n\n1. **RAG-Sequence**: Uses the same retrieved document to generate the complete sequence, treating the retrieved document as a sing"
+      },
+      {
+        "question": "How many parameters does GPT-3 have?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "GPT-3 has **175 billion parameters**, as mentioned across multiple passages [1][2][3][4][5]."
+      },
+      {
+        "question": "What learning setting does the GPT-3 paper emphasize, and is it gradient-based?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, the GPT-3 paper emphasizes **few-shot learning**, and it is explicitly **not gradient-based**.\n\nAs stated in the abstract, \"GPT-3 is applied without any gradient updates"
+      },
+      {
+        "question": "What method does InstructGPT use to align language models with human intent?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, InstructGPT uses a three-step method to align language models with human intent:\n\n1. **Supervised Fine-Tuning (SFT)**: A dataset of labeler demonstrations of desired mod"
+      },
+      {
+        "question": "What is notable about the training data used for the LLaMA models?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, several notable aspects of the training data used for LLaMA models can be identified:\n\n1. **Diverse data sources**: The pre-training data for LLaMA includes a variety of"
+      },
+      {
+        "question": "What does LoRA freeze and what does it train to reduce the number of trainable parameters?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, LoRA **freezes the pre-trained model weights** and instead **trains injected rank decomposition matrices** (specifically matrices A and B) inserted into each layer of th"
+      },
+      {
+        "question": "What unified framework does the T5 paper propose for NLP tasks?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, the T5 paper proposes treating every text processing problem as a **\"text-to-text\" problem** \u2014 taking text as input and producing new text as output. This unified framew"
+      },
+      {
+        "question": "What capability does chain-of-thought prompting elicit in large language models?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the provided passages, chain-of-thought prompting elicits **complex reasoning capabilities** in large language models. Specifically, it enables models to generate a series of intermediate rea"
+      },
+      {
+        "question": "What position-encoding method does RoFormer introduce?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, RoFormer introduces **Rotary Position Embedding (RoPE)**. This method encodes absolute position with a rotation matrix while simultaneously incorporating explicit relati"
+      },
+      {
+        "question": "What efficiency problem with BERT does Sentence-BERT address for semantic similarity search?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, Sentence-BERT addresses the massive computational overhead that BERT requires for semantic similarity search. Because BERT uses a **cross-encoder** architecture, both se"
+      },
+      {
+        "question": "What kind of retrieval does Dense Passage Retrieval use instead of sparse methods like TF-IDF or BM25?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, Dense Passage Retrieval (DPR) uses **dense representations** (embeddings) instead of sparse methods like TF-IDF or BM25. Specifically, it implements retrieval using **de"
+      },
+      {
+        "question": "What late-interaction operator does ColBERT use to score documents?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, ColBERT uses a **MaxSim** operation as its late-interaction operator. This is visible in Figure 3's description, which shows \"MaxSim\" applied multiple times to compute t"
+      }
+    ],
+    "multi_hop": [
+      {
+        "question": "Both BERT and the original Transformer use multi-head self-attention. Which part of the Transformer architecture does BERT build on?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, BERT builds specifically on the **encoder** part of the Transformer architecture. As stated in passage [4], \"BERT's model architecture is a multi-layer bidirectional Tra"
+      },
+      {
+        "question": "Retrieval-augmented generation relies on DPR for retrieval. What retrieval approach does DPR use, and how does it differ from BM25?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the provided passages, DPR (Dense Passage Retrieval) uses a **bi-encoder architecture** that produces dense vector representations. Specifically, it encodes documents and queries separately u"
+      },
+      {
+        "question": "GPT-3 showed strong few-shot ability but not reliable instruction-following. What later technique was used to make such models follow user instructions, and what are its main stages?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the context passages, the technique used to make GPT-3-like models reliably follow user instructions is **Reinforcement Learning from Human Feedback (RLHF)**, implemented in **InstructGPT**. "
+      },
+      {
+        "question": "Both LoRA and standard full fine-tuning adapt a pre-trained Transformer. What efficiency advantages does LoRA claim over full fine-tuning, including at inference time?",
+        "abstained": false,
+        "n_contexts": 5,
+        "answer": "Based on the provided passages, LoRA claims several efficiency advantages over full fine-tuning:\n\n## Training Efficiency\n\n- **Reduced trainable parameters**: LoRA can reduce the number of trainable pa"
+      }
+    ],
+    "out_of_domain": [
+      {
+        "question": "What was the box office revenue of the movie Titanic?",
+        "abstained": true,
+        "n_contexts": 0,
+        "answer": "I don't have enough information in the provided documents to answer that."
+      },
+      {
+        "question": "What is the capital city of Australia?",
+        "abstained": true,
+        "n_contexts": 0,
+        "answer": "I don't have enough information in the provided documents to answer that."
+      },
+      {
+        "question": "Can you give me a step-by-step recipe for baking a sourdough bread loaf?",
+        "abstained": true,
+        "n_contexts": 0,
+        "answer": "I don't have enough information in the provided documents to answer that."
+      },
+      {
+        "question": "What were Apple's quarterly earnings in the third quarter of 2023?",
+        "abstained": true,
+        "n_contexts": 0,
+        "answer": "I don't have enough information in the provided documents to answer that."
+      }
+    ]
+  }
+}

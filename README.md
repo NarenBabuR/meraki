@@ -104,6 +104,9 @@ All knobs live in [`config.py`](config.py) and are environment-overridable; see
 | `CHUNK_SIZE` | 1024 | parent / flat chunk length (re-index) |
 | `CHILD_CHUNK_SIZE` | 256 | child chunk length in small-to-big (re-index) |
 | `EMBED_MODEL` | `BAAI/bge-small-en-v1.5` | embedding model (re-index after changing) |
+| `CONTEXTUAL_HEADERS` | `true` | prepend title+section to each child before embedding (re-index) |
+| `HYBRID` | `true` | fuse dense + BM25 with Reciprocal Rank Fusion |
+| `DECOMPOSE` | `false` | LLM splits multi-hop questions into sub-queries (adds a call; big multi-hop gain) |
 | `USE_QUERY_INSTRUCTION` | `true` | BGE query-prefix asymmetry — **Break #2** |
 | `TOP_N` / `TOP_K` | 25 / 5 | candidate pool / final chunks to the LLM |
 | `RERANK` | `true` | cross-encoder reranking — **Break #1** |
@@ -119,11 +122,13 @@ config.py            # single source of truth for all toggles
 src/
   ingest.py          # arXiv download + pypdf text extraction
   sectioning.py      # detect paper sections; offset -> page/section mapping
-  chunking.py        # flat OR small-to-big (parent/child) chunking + dedupe
+  chunking.py        # flat OR small-to-big (parent/child) chunking + dedupe + contextual headers
   embeddings.py      # local BGE; query/doc instruction asymmetry
   vectorstore.py     # ChromaDB persistent (cosine) + parents sidecar
+  lexical.py         # BM25 sparse index (for hybrid retrieval)
+  decompose.py       # LLM query decomposition (multi-hop)
   rerank.py          # local cross-encoder reranker
-  retriever.py       # embed -> top_n -> threshold -> rerank -> gate -> merge-to-parents
+  retriever.py       # decompose -> dense⊕BM25 (RRF) -> rerank -> gate -> merge-to-parents
   generate.py        # Claude wrapper: retry/fallback + abstention prompt
   pipeline.py        # ties retrieval + generation; returns answer + contexts
 scripts/

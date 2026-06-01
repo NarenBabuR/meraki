@@ -13,3 +13,10 @@ data/chroma/
 
 # Assignment prompt (not part of the solution)
 Meraki_Labs_*.pdf
+deck/node_modules/
+deck/*.pdf
+
+# OS / editor junk
+.DS_Store
+~$*
+deck/*.pptx

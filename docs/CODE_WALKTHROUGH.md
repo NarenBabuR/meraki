@@ -257,30 +257,42 @@ produces **~7,250 children + ~1,620 parents** in a ~38 MB Chroma store.
 > what powers both precision and the abstention gate. It replaces the Cohere
 > reranker from `file-processor` (which needed AWS) with a free local model.
 
+### 3.1a `src/lexical.py` & `src/decompose.py` — hybrid + multi-hop helpers
+
+- **`lexical.py`** builds a **BM25** index over the same documents Chroma holds
+  (cached), and `search(query, top_n)` returns sparse keyword matches. Used for
+  hybrid retrieval — BM25 catches exact tokens dense embeddings blur (model names,
+  numbers). Toggle: `HYBRID`.
+- **`decompose.py`** asks a cheap LLM (Haiku) to split a multi-hop question into
+  standalone sub-questions (single-fact questions pass through unchanged). Toggle:
+  `DECOMPOSE` (off by default — it adds an LLM call).
+
 ### 3.2 `src/retriever.py` — the full retrieval pipeline
 
-`retrieve(question)` is the heart of the system. Step by step:
+`retrieve(question)` ties it together. Step by step:
 
 ```python
-q_emb = embed_query(question)                       # 1. embed the question
-candidates = vectorstore.query(q_emb, top_n=25)     # 2. wide vector search (children)
-kept = [c for c in candidates                       # 3. coarse cosine filter
-        if c["similarity"] >= sim_threshold]
-if not kept: return []
-if CONFIG.rerank:                                   # 4. cross-encoder rerank
-    reranked = rerank(question, kept, top_k=len(kept))
-    ranked = [c for c in reranked                   #    + relevance GATE
-              if c["rerank_score"] >= rerank_threshold]
+queries = decompose(question) if CONFIG.decompose else (question,)  # 1. multi-hop split
+pool = {}                                                           # 2. per (sub-)query:
+for q in queries:                                                   #    dense ⊕ BM25 (RRF)
+    for c in _candidates_for(q): pool.setdefault(c["chunk_id"], c)  #    pooled, de-duped
+candidates = list(pool.values())
+if not CONFIG.hybrid:                                               # 3. cosine pre-filter
+    candidates = [c for c in candidates if c["similarity"] >= sim_threshold]
+if CONFIG.rerank:                                                   # 4. rerank vs ORIGINAL q
+    reranked = rerank(question, candidates, top_k=len(candidates))
+    ranked = [c for c in reranked if c["rerank_score"] >= rerank_threshold]  # + GATE
 else:
-    ranked = kept                                   #    Break #1: cosine order, no gate
+    ranked = sorted(candidates, key=lambda c: c.get("similarity") or 0, reverse=True)
 if not ranked: return []
-if CONFIG.small_to_big:                             # 5. expand children → parents
-    return _merge_to_parents(ranked)                #    (de-duped, top_k parents)
-return ranked[:top_k]                               #    flat mode: return chunks
+if CONFIG.small_to_big: return _merge_to_parents(ranked)            # 5. children → parents
+return ranked[:top_k]
 ```
 
-The two-stage shape (**wide search → narrow rerank**) is the pattern from
-`file-processor`. Two parts to highlight:
+`_candidates_for(q)` does the dense search and, when `HYBRID` is on, fuses it with
+BM25 via **Reciprocal Rank Fusion** (`_rrf`, k=60). The two-stage shape
+(**wide search → narrow rerank**) is the pattern from `file-processor`. Parts to
+highlight:
 
 - **The gate** (step 4): on an out-of-domain question every child scores below
   `rerank_threshold` (−3.0), so `ranked` is empty → `retrieve` returns `[]` → the

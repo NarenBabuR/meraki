@@ -57,6 +57,10 @@ class Config:
     # single-size chunking. Changing this requires a re-index.
     small_to_big: bool = _bool("SMALL_TO_BIG", True)
     child_chunk_size: int = _int("CHILD_CHUNK_SIZE", 256)
+    # Contextual chunk headers: prepend "<title> — <section>" to each child
+    # *before embedding*, so the vector captures which paper/section it's from
+    # (a lightweight take on Anthropic's contextual retrieval). Re-index to change.
+    contextual_headers: bool = _bool("CONTEXTUAL_HEADERS", True)
 
     # --- Embeddings ---
     embed_model: str = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
@@ -73,6 +77,18 @@ class Config:
     # Coarse cosine pre-filter. BGE has a high similarity baseline (~0.5 even for
     # unrelated text), so this only drops truly orthogonal candidates.
     sim_threshold: float = _float("SIM_THRESHOLD", 0.30)
+    # Hybrid retrieval: fuse dense (vector) and sparse (BM25) candidate lists with
+    # Reciprocal Rank Fusion. Catches exact terms (model names, metrics, numbers)
+    # that dense embeddings miss. Query-time toggle.
+    hybrid: bool = _bool("HYBRID", True)
+    rrf_k: int = _int("RRF_K", 60)
+    # Query decomposition: use an LLM to split a question into sub-questions,
+    # retrieve for each, and pool — aimed at the weak multi-hop subset. Adds one
+    # LLM call per query, so it's off by default. Query-time toggle.
+    decompose: bool = _bool("DECOMPOSE", False)
+    decompose_model: str = os.getenv("DECOMPOSE_MODEL", "claude-haiku-4-5-20251001")
+    max_subquestions: int = _int("MAX_SUBQUESTIONS", 3)
+
     # Break #1 toggle: disable the cross-encoder reranker.
     rerank: bool = _bool("RERANK", True)
     rerank_model: str = os.getenv(
@@ -107,7 +123,8 @@ def describe() -> str:
     """Human-readable one-liner of the toggles that matter for experiments."""
     c = CONFIG
     return (
-        f"small_to_big={c.small_to_big} chunk_size={c.chunk_size} "
+        f"small_to_big={c.small_to_big} headers={c.contextual_headers} "
+        f"hybrid={c.hybrid} decompose={c.decompose} "
         f"child_chunk_size={c.child_chunk_size} top_n={c.top_n} top_k={c.top_k} "
         f"rerank={c.rerank} query_instruction={c.use_query_instruction} "
         f"abstain={c.abstain} gen={c.gen_model}"

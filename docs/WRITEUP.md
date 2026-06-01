@@ -110,6 +110,33 @@ default because faithfulness and citation context matter most for a system meant
 to be trusted, but this is a genuine tradeoff I'd defend, not a free lunch.
 (`flat_baseline.json` keeps the flat numbers for comparison.)
 
+**Retrieval upgrades (measured, additive).** Three further improvements, each a
+flag, measured incrementally on top of the small-to-big baseline:
+
+- **Contextual headers** (`CONTEXTUAL_HEADERS`, default on) — prepend
+  `title — section` to each child *before embedding*, so the vector encodes
+  provenance (a lightweight take on Anthropic's contextual retrieval).
+- **Hybrid retrieval** (`HYBRID`, default on) — fuse dense + BM25 with Reciprocal
+  Rank Fusion; BM25 catches exact terms (RoPE, MaxSim, "175 billion").
+- **Query decomposition** (`DECOMPOSE`, default **off**) — an LLM splits a
+  multi-hop question into sub-questions, each retrieved separately and pooled.
+
+| Multi-hop subset | Precision | Recall | Faithfulness |
+|---|---|---|---|
+| small-to-big baseline | 0.46 | 0.75 | 0.78 |
+| + contextual headers | 0.52 | 0.75 | 1.00 |
+| + hybrid | 0.52 | 0.75 | 0.89 |
+| + decomposition | **0.65** | **1.00** | **1.00** |
+
+Headers + hybrid also lift in-domain precision (0.76 → 0.80) at negligible cost,
+so both ship **on by default**. Decomposition is the real fix for the multi-hop
+weak spot — precision 0.46 → 0.65, recall 0.75 → 1.00 — but it adds an LLM call
+and raises retrieval latency ~142 ms → ~1.5 s, so it ships **off**, to be enabled
+for multi-hop-heavy workloads. Abstention is unaffected: out-of-domain
+hallucination stays 0%, and in-domain over-refusal actually dropped to 0% (better
+retrieval → fewer false abstentions). Result files: `headers_only`,
+`headers_hybrid`, `headers_hybrid_decompose`.
+
 ---
 
 ## 3. Evaluation framework
@@ -365,28 +392,38 @@ gate. That protects every other change I'd make.
 
 ## 7. Scope cuts and what I'd do next
 
+**Built after the first pass** (measured improvements, see §2): small-to-big
+retrieval, contextual chunk headers, hybrid BM25+dense (RRF), and LLM query
+decomposition — the last lifts multi-hop precision 0.46 → 0.65 and recall to 1.0.
+
 **Deliberately not built** (2-day scope; over-engineering is a stated red flag):
 
 - **Auth, user accounts, chat-history persistence** — demo, not a product.
 - **Docker/k8s/CI** — `pip install` + one key was the bar.
-- **Hybrid (BM25 + dense) retrieval** — dense + cross-encoder is sufficient here
-  and avoids a second index. The clearest *next* upgrade.
-- **Multi-hop / agentic query decomposition** — would directly attack the weakest
-  measured subset (multi-hop precision 0.46), but it's a rabbit hole I scoped out.
 - **Synthetic eval data** — hand-curation was faster and more trustworthy.
 - **Multimodal / tables / figures** — arXiv math and two-column layouts extract
   imperfectly with `pypdf`; I targeted prose and dropped reference sections.
+- **A stronger embedder/reranker** (bge-large, bge-reranker-v2-m3) — easy swaps,
+  left as a measured experiment rather than a guess.
 
 **What I'd tackle next, in order:**
 
 1. **Grow the gold set to ~100+ questions** with more OOD and multi-hop coverage,
    so subset numbers are statistically meaningful (current caveat in §5).
-2. **Multi-hop retrieval** — query decomposition / sub-question retrieval to lift
-   the 0.46 multi-hop precision, the clearest quality gap.
+2. **Cut decomposition latency** — it adds ~1.4 s per query; cache sub-questions,
+   run sub-retrievals concurrently, or gate decomposition to questions a cheap
+   classifier flags as multi-hop.
 3. **Tune child size / learn the abstention threshold** — the small-to-big child
    size (256) and the hand-tuned `-3.0` gate were set by eye; both should be swept
    against the gold set and the threshold calibrated from labeled pairs.
-4. **Hybrid retrieval** for exact-term queries (model names, metrics, numbers)
-   where dense embeddings underperform sparse matching.
+4. **Upgrade the reranker** (bge-reranker-v2-m3) + a larger embedder, A/B'd with
+   the harness. This is also a **known limitation, not just an upgrade**:
+   stress-testing by hand found the weak `ms-marco-MiniLM` reranker *under-scores*
+   some legitimate in-domain phrasings (e.g. acronym-heavy "What is RoPE and what
+   problem does it address?") into the same band as out-of-domain junk (≈ −7 to
+   −9), so the abstention gate over-refuses them. The threshold can't separate the
+   two at this reranker's resolution — a stronger reranker is the fix. My
+   18-question gold set didn't catch it (phrasing coverage) — which is exactly why
+   item 1 (grow the gold set) is first.
 5. **CI eval gate** (§6) — cheap, and it's what keeps quality from silently
    eroding (Break #2 is the cautionary tale).
