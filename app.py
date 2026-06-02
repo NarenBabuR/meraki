@@ -67,7 +67,8 @@ if prompt:
             with st.expander(f"🔎 {len(res.contexts)} retrieved chunks"):
                 for i, c in enumerate(res.contexts, start=1):
                     m = c["metadata"]
-                    score = f"cosine={c['similarity']:.3f}"
+                    sim = c.get("similarity")
+                    score = f"cosine={sim:.3f}" if sim is not None else "cosine=n/a"
                     if c.get("rerank_score") is not None:
                         score += f" · rerank={c['rerank_score']:.3f}"
                     sec = f" · §{m['section']}" if m.get("section") else ""
