@@ -16,11 +16,67 @@ A retrieval-augmented QA system over a corpus of foundational ML papers
 it retrieves passages, reranks them, generates a grounded answer with citations,
 and **declines to answer when the corpus doesn't contain the answer**.
 
+### Pipeline diagram
+
 ```
-PDFs ─ extract ─ chunk ─ embed (local BGE) ─► ChromaDB (1,621 chunks)
-query ─ embed ─ vector search (top 25) ─ cosine filter
-      ─ cross-encoder rerank ─ relevance gate ─ top 5
-      ─ Claude (grounded prompt, abstains if nothing relevant) ─► answer + sources
+╔══════════════════════════════════════════════════════════════════╗
+║  INDEX TIME  (scripts/build_index.py — run once)                ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  20 arXiv PDFs
+       │ pypdf — extract pages, stop at References section
+       ▼
+  Pages  (354 total, per-paper)
+       │ detect_sections() — regex section headings
+       │ parent_splitter   — 1024-char chunks (add_start_index)
+       ▼
+  1619 Parent Documents  {text, title, section, page}
+       │
+       │  LangChain ParentDocumentRetriever.add_documents()
+       │
+       ├──► child_splitter (256-char) + contextual header
+       │         "title — section\n\nchunk text"
+       │              │ BGE embed (384-dim, L2-normalised)
+       │              ▼
+       │         Chroma HNSW index  (7 256 child vectors)
+       │
+       └──► LocalFileStore  (1 619 parents, keyed by UUID)
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║  QUERY TIME  (pipeline.answer(question))                        ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  User question
+       │ DECOMPOSE=true → Haiku splits into ≤3 sub-questions
+       ▼
+  Sub-questions  [q₁, q₂, …]
+       │
+       │  for each sub-question:
+       ├──► Dense:  BGE embed (+ query instruction prefix)
+       │            → Chroma cosine top-25
+       │
+       └──► Sparse: BM25Okapi tokenise → top-25
+       │
+       │  Reciprocal Rank Fusion  (k=60)  → top-25 fused
+       ▼
+  Candidate pool  (child chunks, de-duped across sub-questions)
+       │ CrossEncoder ms-marco-MiniLM — score every (q, chunk) pair
+       │ relevance gate: drop score < −3.0
+       ▼
+  ┌─────────────────────────────────────────┐
+  │  gate passes?                           │
+  │  YES → fetch Parents from LocalFileStore│
+  │  NO  → return [] (abstain, no LLM call) │
+  └─────────────────────────────────────────┘
+       │
+       ▼
+  Top-5 Parent chunks  (~1024 chars, with section + citations)
+       │ ABSTAIN=true  →  strict system prompt
+       │                  "answer only from context; else say I don't know"
+       │ Claude Sonnet 4.6  (retry/fallback on 429/500/529 → Sonnet 4.5)
+       ▼
+  Answer + inline citations  [1] [2] [3]
 ```
 
 Three interfaces: a Streamlit chat UI (shows the retrieved chunks and their
@@ -74,10 +130,11 @@ both a precision booster *and* the mechanism behind the FIX in §5.
 
 **Chunking: small-to-big (parent/child).** The default chunking embeds small
 ~256-char **children** for precise matching but returns the ~1024-char **parent**
-each match belongs to (de-duplicated) — the LangChain ParentDocumentRetriever /
-"auto-merging" idea, implemented in ~40 lines without the framework. Each chunk is
-also tagged with its detected paper **section** (`src/sectioning.py`) for richer
-citations. I implemented it as a toggle (`SMALL_TO_BIG`) and measured it against
+each match belongs to (de-duplicated). This is LangChain's `ParentDocumentRetriever`
+pattern: children go into Chroma for vector search, parents go into a
+`LocalFileStore` keyed by UUID, and at query time each child hit is swapped for
+its parent. Each chunk is also tagged with its detected paper **section**
+(`src/sectioning.py`) for richer citations. I implemented it as a toggle (`SMALL_TO_BIG`) and measured it against
 flat 1024-char chunking — and the result is an honest tradeoff, not a clean win:
 
 | In-domain | Flat (1024) | Small-to-big | Δ |
