@@ -170,8 +170,9 @@ flag, measured incrementally on top of the small-to-big baseline:
 | + hybrid | 0.52 | 0.75 | 0.89 |
 | + decomposition | **0.65** | **1.00** | **1.00** |
 
-Headers + hybrid also lift in-domain precision (0.76 → 0.80) at negligible cost,
-so all three ship **on by default**. Decomposition is the real fix for the
+Hybrid retrieval lifts in-domain precision (0.76 → 0.80); contextual headers
+alone leave precision unchanged but improve answer relevancy marginally. All
+three ship **on by default**. Decomposition is the real fix for the
 multi-hop weak spot — precision 0.46 → 0.65, recall 0.75 → 1.00 — and the
 quality gain justifies the cost: one extra Haiku call that raises retrieval
 latency ~142 ms → ~1.5 s. The tradeoff is explicit and reversible (`DECOMPOSE=false`
