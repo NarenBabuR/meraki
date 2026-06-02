@@ -142,10 +142,8 @@ flat 1024-char chunking — and the result is an honest tradeoff, not a clean wi
 | Context Precision | 0.85 | 0.76 | −0.09 |
 | Context Recall | 0.93 | 0.89 | −0.04 |
 | **Faithfulness** | 0.91 | **0.98** | **+0.07** |
-| Retrieval latency (mean) | 327 ms | **142 ms** | −57% |
 
-Small-to-big **improved faithfulness and halved retrieval latency**, but **lowered
-Ragas context-precision**. The precision drop is largely a *metric artifact*:
+Small-to-big **improved faithfulness** but **lowered Ragas context-precision**. The precision drop is largely a *metric artifact*:
 Ragas scores each *returned* unit, and a 1024-char parent contains the answer plus
 surrounding prose, so there's more "non-answer" text per unit even though
 retrieval *found* the answer precisely (via the child) and the LLM answered it
@@ -248,7 +246,7 @@ Read this honestly:
   blended "overall" number is misleading, which is why I don't lead with one — and
   why measuring the OOD behavior needs a different instrument (§5).
 
-Latency: retrieval ~142 ms mean (p95 229 ms), generation ~4.1 s (Sonnet).
+Latency: generation ~4.1 s (Sonnet).
 
 ---
 
