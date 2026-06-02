@@ -105,7 +105,7 @@ flag, measured incrementally on top of the small-to-big baseline:
   provenance (a lightweight take on Anthropic's contextual retrieval).
 - **Hybrid retrieval** (`HYBRID`, default on) — fuse dense + BM25 with Reciprocal
   Rank Fusion; BM25 catches exact terms (RoPE, MaxSim, "175 billion").
-- **Query decomposition** (`DECOMPOSE`, default **off**) — an LLM splits a
+- **Query decomposition** (`DECOMPOSE`, default **on**) — an LLM (Haiku) splits a
   multi-hop question into sub-questions, each retrieved separately and pooled.
 
 | Multi-hop subset | Precision | Recall | Faithfulness |
@@ -116,10 +116,11 @@ flag, measured incrementally on top of the small-to-big baseline:
 | + decomposition | **0.65** | **1.00** | **1.00** |
 
 Headers + hybrid also lift in-domain precision (0.76 → 0.80) at negligible cost,
-so both ship **on by default**. Decomposition is the real fix for the multi-hop
-weak spot — precision 0.46 → 0.65, recall 0.75 → 1.00 — but it adds an LLM call
-and raises retrieval latency ~142 ms → ~1.5 s, so it ships **off**, to be enabled
-for multi-hop-heavy workloads. Abstention is unaffected: out-of-domain
+so all three ship **on by default**. Decomposition is the real fix for the
+multi-hop weak spot — precision 0.46 → 0.65, recall 0.75 → 1.00 — and the
+quality gain justifies the cost: one extra Haiku call that raises retrieval
+latency ~142 ms → ~1.5 s. The tradeoff is explicit and reversible (`DECOMPOSE=false`
+for latency-sensitive workloads). Abstention is unaffected: out-of-domain
 hallucination stays 0%, and in-domain over-refusal actually dropped to 0% (better
 retrieval → fewer false abstentions). Result files: `headers_only`,
 `headers_hybrid`, `headers_hybrid_decompose`.
@@ -371,9 +372,10 @@ decomposition — the last lifts multi-hop precision 0.46 → 0.65 and recall to
 
 1. **Grow the gold set to ~100+ questions** with more OOD and multi-hop coverage,
    so subset numbers are statistically meaningful (current caveat in §5).
-2. **Cut decomposition latency** — it adds ~1.4 s per query; cache sub-questions,
-   run sub-retrievals concurrently, or gate decomposition to questions a cheap
-   classifier flags as multi-hop.
+2. **Cut decomposition latency** — it adds ~1.4 s per query (now on by default);
+   cache sub-questions, run sub-retrievals concurrently, or gate decomposition
+   to questions a cheap classifier flags as multi-hop so single-hop queries pay
+   no overhead.
 3. **Tune child size / learn the abstention threshold** — the small-to-big child
    size (256) and the hand-tuned `-3.0` gate were set by eye; both should be swept
    against the gold set and the threshold calibrated from labeled pairs.
