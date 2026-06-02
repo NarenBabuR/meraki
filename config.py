@@ -85,7 +85,7 @@ class Config:
     # Query decomposition: use an LLM to split a question into sub-questions,
     # retrieve for each, and pool — aimed at the weak multi-hop subset. Adds one
     # LLM call per query, so it's off by default. Query-time toggle.
-    decompose: bool = _bool("DECOMPOSE", False)
+    decompose: bool = _bool("DECOMPOSE", True)
     decompose_model: str = os.getenv("DECOMPOSE_MODEL", "claude-haiku-4-5-20251001")
     max_subquestions: int = _int("MAX_SUBQUESTIONS", 3)
 
